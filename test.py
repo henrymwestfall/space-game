@@ -1,4 +1,5 @@
 import sys
+import random
 
 import pygame as pg
 from pygame.locals import *
@@ -12,13 +13,16 @@ BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 
 class Laser:
-    def __init__(self, color, size):
+    def __init__(self, universe, color, size):
+        self.universe = universe
         self.color = color
         self.size = size
         self.length = 35 * self.size
         self.pos = vec(0, 0)
         self.vel = vec(0, 0)
         self.lifetime = 0
+
+        self.universe.bodies.append(self)
 
     def update(self, dt, t):
         self.lifetime += dt
@@ -35,16 +39,18 @@ class Laser:
             for i in range(20):
                 pg.draw.circle(screen, self.color, last, self.size)
                 last = last.lerp(self.pos, lerp_amount)
+        else:
+            pg.draw.circle(screen, self.color, self.pos, self.size)
 
 class Fighter:
-    def __init__(self, lasers):
-        self.lasers = lasers
+    def __init__(self, universe):
+        self.universe = universe
         self.color = WHITE
         self.local_points = (
-            vec(0, 20),
-            vec(12, -20),
+            vec(0, 15),
+            vec(12, -15),
             vec(0, -10),
-            vec(-12, -20)
+            vec(-12, -15)
         )
         self.pos = vec(0, 0)
         self.vel = vec(0, 0)
@@ -57,6 +63,8 @@ class Fighter:
 
         self.last_laser_shot = -100
         self.shot_delay = 0.2
+
+        self.universe.bodies.append(self)
 
     def global_points(self):
         points = []
@@ -81,15 +89,50 @@ class Fighter:
         if keys[K_SPACE]:
             if t - self.last_laser_shot > self.shot_delay:
                 self.last_laser_shot = t
-                l = Laser(CYAN, 1)
+                l = Laser(self.universe, CYAN, 1)
                 l.vel = -vec(0, self.vel.length() + 200).rotate(self.rot)
                 l.pos = self.global_points()[0]
-                self.lasers.append(l)
 
         self.pos += self.vel * dt
 
     def draw(self, screen):
-        pg.draw.polygon(screen, self.color, self.global_points())
+        self.universe.draw_poly(screen, self.color, self.global_points())
+
+
+class BGStar:
+    def __init__(self, universe):
+        self.universe = universe
+        self.parallax = random.random() ** 2
+
+        self.universe.particles.append(self)
+
+    def draw(self, screen):
+        self.universe.draw_circle(screen, WHITE, )
+
+
+class Universe:
+    def __init__(self):
+        self.bodies = []
+        self.particles = []
+        self.zoom = 1
+        self.camera = vec(0, 0)
+        self.focus = None
+
+    def update(self, dt, t):
+        if not (self.focus is None):
+            self.camera = self.focus.pos - vec(450, 300)
+
+        for b in self.bodies:
+            b.update(dt, t)
+
+    def draw_poly(self, screen, color, global_points, parallax=1):
+        points = [vec(p) * self.zoom * parallax - self.camera for p in global_points]
+        pg.draw.polygon(screen, color, points)
+    
+    def draw_circle(self, screen, color, global_center, radius, parallax=1):
+        center = vec(global_center) * self.zoom * parallax - self.camera
+        pg.draw.circle(screen, color, center, radius)
+
 
 def main():
     pg.init()
@@ -97,15 +140,16 @@ def main():
     screen.fill(BLACK)
     clock = pg.time.Clock()
 
-    lasers = []
+    u = Universe()
 
-    for i in range(5):
-        laser = Laser(RED, 4)
-        laser.vel = vec(800, 0).rotate(40 + i * 5)
-        lasers.append(laser)
+    # for i in range(5):
+    #     laser = Laser(RED, 4)
+    #     laser.vel = vec(800, 0).rotate(40 + i * 5)
+    #     lasers.append(laser)
 
-    f = Fighter(lasers)
+    f = Fighter(u)
     f.pos = vec(450, 300)
+    u.focus = f
 
     t = 0
 
@@ -118,14 +162,11 @@ def main():
                 pg.quit()
                 sys.exit()
 
-        for laser in lasers:
-            laser.update(dt, t)
-        f.update(dt, t)
+        u.update(dt, t)
 
         screen.fill(BLACK)
-        for laser in lasers:
-            laser.draw(screen)
-        f.draw(screen)
+        for b in u.bodies:
+            b.draw(screen)
         pg.display.flip()
 
 if __name__ == "__main__":

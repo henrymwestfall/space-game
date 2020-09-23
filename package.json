@@ -1,0 +1,17 @@
+{
+  "name": "space",
+  "version": "1.0.0",
+  "description": "a game about being in space",
+  "main": "main.js",
+  "scripts": {
+    "start": "budo src/main.js:build.js --live"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "budo": "^11.6.4"
+  },
+  "dependencies": {
+    "victor": "^1.1.0"
+  }
+}
