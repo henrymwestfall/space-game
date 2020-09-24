@@ -59,7 +59,7 @@ class Laser:
                 if body.radius_collision(self.pos):
                     self.exploding = True
                     self.exploding_start = t
-                    body.health -= 5
+                    body.health -= round(7 - self.lifetime)
 
         if self.lifetime > 5:
             self.universe.bodies.remove(self)
