@@ -59,6 +59,7 @@ class Laser:
                 if body.radius_collision(self.pos):
                     self.exploding = True
                     self.exploding_start = t
+                    self.vel.rotate_ip(random.randint(-30, 30))
                     body.health -= round(7 - self.lifetime)
 
         if self.lifetime > 5:
@@ -67,7 +68,7 @@ class Laser:
 
     def draw(self, screen):
         if self.exploding:
-            self.universe.draw_circle(screen, ORANGE, self.pos, self.size * 3)
+            self.universe.draw_circle(screen, ORANGE, self.pos, self.size * 5)
             return
 
         streak_end = -self.vel.normalize() * self.length + self.pos
@@ -138,7 +139,8 @@ class Fighter:
         return distance_squared <= self.approx_radius ** 2
 
     def update(self, dt, t):
-        pg.display.set_caption(f"Shields at {self.health}%")
+        caption = f"Shields at {self.health}% Coordinates: ({round(self.pos.x)}, {round(self.pos.y)}) Speed: {round(self.vel.length())} px/s)"
+        pg.display.set_caption(caption)
         if self.health <= 0:
             self.health = 0
             self.color = ORANGE
