@@ -98,7 +98,7 @@ class Fighter:
 
         self.pos = vec(0, 0)
         self.vel = vec(0, 0)
-        self.rot = 65
+        self.rot = 0
 
         self.rot_speed = 360
         self.fly_speed = 1000
@@ -106,7 +106,7 @@ class Fighter:
         self.dec = 1.0
 
         self.last_laser_shot = -100
-        self.shot_delay = 0.2
+        self.shot_delay = 0.0
 
         self.health = 100
         self.faction = 0
@@ -144,6 +144,7 @@ class Fighter:
         if self.health <= 0:
             self.health = 0
             self.color = ORANGE
+            self.vel = self.vel.lerp(vec(0, 0), self.dec * dt)
             self.pos += self.vel * dt
             return
 
@@ -170,7 +171,7 @@ class Fighter:
         if t - self.last_laser_shot > self.shot_delay:
                 self.last_laser_shot = t
                 l = Laser(self.universe, CYAN, 1)
-                l.vel = -vec(0, self.vel.length() + 500).rotate(self.rot)
+                l.vel = -vec(0, self.vel.length() + 500).rotate(self.rot + random.randint(-1, 1))
                 l.pos = self.global_points()[0]
 
     def draw(self, screen):
@@ -189,6 +190,7 @@ class AIFighter(Fighter):
     def update(self, dt, t):
         if self.health <= 0:
             self.color = ORANGE
+            self.vel = self.vel.lerp(vec(0, 0), self.dec * dt)
             self.pos += self.vel * dt
             return
 
