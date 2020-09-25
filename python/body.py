@@ -19,11 +19,13 @@ class Body(object):
         self.vel = vec(0, 0)
 
         self.dec = 0
+        self.actively_moving = False
     
     def update(self, dt, t):
         self.lifetime += dt
-        self.vel = self.vel.lerp(vec(0, 0), self.dec * dt)
         if not self.process(dt, t):
+            if not self.actively_moving:
+                self.vel = self.vel.lerp(vec(0, 0), self.dec * dt)
             self.pos += self.vel * dt
         else: # kill self
             self.universe.bodies.remove(self)
@@ -40,7 +42,6 @@ class CircularBody(Body):
 
         self.color = color
         self.radius = radius
-        self.vel = vec(0, 0)
         self.rot = 0
 
     def get_aabb_rect(self):
@@ -99,8 +100,8 @@ class PolygonalBody(Body):
         
         xmin = float('inf')
         ymin = float('inf')
-        xmax = 0
-        ymax = 0
+        xmax = -float('inf')
+        ymax = -float('inf')
         for p in self.get_global_points():
             xmin = min(xmin, p.x)
             ymin = min(ymin, p.y)
@@ -165,14 +166,13 @@ class Fighter(PolygonalBody):
                 self.last_laser_shot = t
                 l = Laser(self.universe, self.get_global_points(t)[0], self.laser_color, 1)
                 l.vel = -vec(0, self.vel.length() + 500).rotate(self.rot + random.randint(-self.shot_spread, self.shot_spread))
-
     
 class PlayerFighter(Fighter):
     def __init__(self, universe, pos, equipment, faction):
         super().__init__(universe, pos, equipment, faction)
 
     def process(self, dt, t):
-        caption = f"Shields at {self.hp}% Coordinates: ({round(self.pos.x)}, {round(self.pos.y)}) Speed: {round(self.vel.length())} px/s)"
+        caption = f"Shields: {self.hp}% Coordinates: ({round(self.pos.x)}, {round(self.pos.y)}) Speed: {round(self.vel.length())} px/s) FPS: {round(1 / dt)}"
         pg.display.set_caption(caption)
 
         if self.hp <= 0:
@@ -188,8 +188,9 @@ class PlayerFighter(Fighter):
 
         if keys[K_UP]:
             self.vel += -vec(0, self.acceleration).rotate(self.rot) * dt
+            self.actively_moving = True
         else:
-            self.vel = self.vel.lerp(vec(0, 0), self.dec * dt)
+            self.actively_moving = False
         if self.vel.length() > self.fly_speed:
             self.vel = self.vel.normalize() * self.fly_speed
 

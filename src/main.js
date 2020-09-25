@@ -1,52 +1,13 @@
-const Victor = require("victor")
+import Universe from "./universe.js"
+import Controller from "./controller.js"
+import PlayerFighter from "./body.js"
+import vec from "./vector.js"
 
 const CYAN = "#00FFFF"
 const RED = "#FF0000"
 const GREEN = "#00FF00"
 const BLACK = "#000000"
 const WHITE = "#FFFFFF"
-
-class Laser {
-    constructor(pos, color, size) {
-        this.color = color
-        this.size = size
-
-        this.length = size * 35
-        this.pos = pos
-        this.vel = Victor(0, 0)
-        this.lifetime = 0.0
-    }
-
-    update(dt, t) {
-        this.lifetime += dt
-        let vel_copy = this.vel.clone().multiply(Victor(dt, dt))
-        this.pos.x += vel_copy.x
-        this.pos.y += vel_copy.y
-        if (this.pos.y > 660) {
-            this.pos.y = 0
-            this.lifetime = 0
-        }
-    }
-
-    draw(ctx) {
-        let vel_copy = this.vel.clone().normalize().multiply(Victor(this.length, this.length))
-        let streakEnd = -(vel_copy).add(this.pos)
-        console.log(this.vel)
-        let last = streakEnd
-        let lerp_amount = 0.3
-        if (this.lifetime > this.length / this.vel.length()) {
-            for (let i=0; i<20; ++i) {
-                ctx.beginPath()
-                ctx.fillStyle = this.color
-                ctx.arc(last.x, last.y, this.size, 0, 2 * Math.PI)
-                ctx.fill()
-
-                last = last.mix(this.pos, lerp_amount)
-            }
-        }
-    }
-}
-
 
 class Game {
     constructor(canvas) {
@@ -55,37 +16,33 @@ class Game {
         this.ctx = canvas.getContext("2d")
         this.t = 0
 
-        this.lasers = []
+        this.universe = new Universe()
+        this.controller = new Controller()
 
-        for (let i=0; i<5; ++i) {
-            let laser = new Laser(Victor(0, 0), RED, 4)
-            laser.vel = Victor(800, 0).rotateByDeg(40 + i * 5)
-            this.lasers.push(laser)
-            console.log(i)
-            console.log(laser.vel)
+        let e = {
+            "rot speed": Math.PI * 2,
+            "fly speed": 1000,
+            "acceleration": 300,
+            "dec": 1.0,
+            "shot delay": 0.2,
+            "hp": 100,
+            "laser color": CYAN,
+            "shot spread": 2,
+            "shields": 0
         }
-    }
 
-    update(dt) {
-        this.lasers.forEach((laser) => {
-            laser.update(dt, this.t)
-        })
-    }
-
-    render() {
-        this.ctx.fillStyle = BLACK
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
-
-        this.lasers.forEach((laser) => {
-            laser.draw(this.ctx)
-        })
+        let p = new PlayerFighter(this.universe, this.controller, vec(0, 0), e, WHITE)
+        this.universe.focus = p
     }
 
     runNextFrame() {
         const dt = this.getElapsedSeconds()
+        this.t += dt
 
-        this.update(dt)
-        this.render()
+        document.getElementById("fps").innerHTML = `FPS: ${Math.round   (1 / dt)}`
+
+        this.universe.update(dt, this.t)
+        this.universe.render(this.ctx)
         
         requestAnimationFrame(() => this.runNextFrame())
     }
@@ -98,13 +55,15 @@ class Game {
     }
 }
 
-window.onload = ()=> {
+var game;
+
+window.onload = () => {
     let canvas = document.getElementById("board")
     canvas.width = 900
     canvas.height = 600
 
-    let game = new Game(canvas)
+    game = new Game(canvas)
     requestAnimationFrame(() => {
-      game.runNextFrame()
+        game.runNextFrame()
     })
 }

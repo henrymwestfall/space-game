@@ -26,7 +26,7 @@ def main():
         "fly speed": 1000,
         "acceleration": 300,
         "dec": 1.0,
-        "shot delay": 0.2,
+        "shot delay": 0.0,
         "hp": 100,
         "laser color": CYAN,
         "shot spread": 2,
@@ -36,7 +36,7 @@ def main():
     f = PlayerFighter(u, vec(450, 300), e, WHITE)
     u.focus = f
 
-    for i in range(3):
+    for i in range(4):
         enemy = AIFighter(u, vec(1000 * i, 0), e, RED)
         # ally = AIFighter(u, vec(1000 * i, 1000 * i), 0)
         # ally.color = GREEN

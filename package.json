@@ -1,15 +1,23 @@
 {
-  "name": "space",
-  "version": "1.0.0",
-  "description": "a game about being in space",
-  "main": "main.js",
+  "private": true,
+  "name": "space-game",
+  "version": "0.0.1",
+  "description": "game",
+  "main": "src/main.js",
   "scripts": {
-    "start": "budo src/main.js:build.js --live"
+    "start": "budo src/main.js:bundle.js --live -- -t [ babelify --presets [ '@babel/preset-env' ] ]",
+    "build": "browserify src/main.js -o bundle.js -t [ babelify --presets [ '@babel/preset-env' ] ]"
   },
-  "author": "",
-  "license": "ISC",
+  "keywords": [],
+  "author": "Henry Westfall",
+  "license": "MIT",
   "devDependencies": {
-    "budo": "^11.6.4"
+    "babel-core": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
+    "babelify": "^8.0.0",
+    "browserify": "^15.2.0",
+    "budo": "^11.0.1",
+    "eslint": "^4.16.0"
   },
   "dependencies": {
     "victor": "^1.1.0"
