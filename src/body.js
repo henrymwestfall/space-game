@@ -114,33 +114,40 @@ class PolygonalBody extends Body {
 
     draw(context) {
         this.universe.draw_poly(context, this.color, this.get_global_points())
-        let center = this.pos.clone().subtract(this.centroid(this.points))
-        this.universe.draw_circle(context, this.color, center, this.approx_radius, 1, false)
+        //let center = this.pos.clone().subtract(this.centroid(this.points))
+        //this.universe.draw_circle(context, this.color, center, this.approx_radius, 1, false)
     }
 }
 
 
 class Laser extends CircularBody {
-    constructor(universe, pos, color, radius) {
+    constructor(universe, parent, pos, color, radius) {
         super(universe, pos, color, radius)
+        this.parent = parent
 
-        this.length = 35 * this.radius
+        this.length = 15 * this.radius
 
         this.exploding = false
         this.exploding_start = null
         this.explosion_life = 0.2
 
         this.full_life_length = 5
+
+        this.first_position = null
     }
 
     process(dt, t) {
+        if (dt == this.lifetime) {
+            this.first_position = this.pos.clone()
+        }
+
         if (this.exploding && t - this.exploding_start > this.explosion_life) {
             return true
         }
 
         if (this.lifetime > dt) {
             this.universe.bodies.forEach(body => {
-                if ((typeof body.hp !== 'undefined') && body.get_aabb_rect().collide_point(this.pos)) {
+                if ((typeof body.hp !== 'undefined') && body.get_aabb_rect().collide_point(this.pos) && body != this.parent) {
                     if (body.radius_collision(this.pos)) {
                         this.exploding = true
                         this.exploding_start = t
@@ -164,8 +171,21 @@ class Laser extends CircularBody {
             this.universe.draw_circle(context, this.color, this.pos, this.radius * 3)
         } else {
             this.universe.draw_circle(context, this.color, this.pos, this.radius) 
-        }
+            // draw streak
+            const streak_end = this.vel.clone().norm().invert().scaled(this.length).add(this.pos)
+            const lerp_amount = 0.3
 
+            if (this.first_position != null) {
+                for (let i=0; i<this.length; ++i) {
+                    let streak_to_original = this.first_position.clone().subtract(streak_end).norm()
+                    let pos_to_original = this.first_position.clone().subtract(this.pos).norm()
+                    if (streak_to_original.dot(pos_to_original) == 1 || this.lifetime > this.length / this.vel.length()) {
+                        this.universe.draw_circle(context, this.color, streak_end, this.radius)
+                    }
+                    streak_end.mix(this.pos, lerp_amount)
+                }
+            }
+        }
     }
 }
 
@@ -214,8 +234,8 @@ class Fighter extends PolygonalBody {
     fire_laser(t) {
         if (t - this.last_laser_shot > this.shot_delay) {
             this.last_laser_shot = t
-            let l = new Laser(this.universe, this.get_global_points()[0], this.laser_color, 2)
-            l.vel = vec(0, this.vel.length() + 600).invert().rotate(this.rot) // TODO: add spread
+            let l = new Laser(this.universe, this, this.get_global_points()[0], this.laser_color, 3)
+            l.vel = vec(0, this.vel.length() + 500).invert().rotate(this.rot) // TODO: add spread
         }
     }
 

@@ -23,7 +23,7 @@ class Game {
 
         let e = {
             "rot speed": Math.PI * 2,
-            "fly speed": 2000,
+            "fly speed": 1000,
             "acceleration": 300,
             "dec": 1.0,
             "shot delay": 0.2,
@@ -36,9 +36,9 @@ class Game {
         let p = new PlayerFighter(this.universe, this.controller, vec(0, 0), e, WHITE)
         this.universe.focus = p
 
-        //new AIFighter(this.universe, vec(-100, -100), e, RED)
-        //new AIFighter(this.universe, vec(-200, -200), e, RED)
-        //new AIFighter(this.universe, vec(50, 50), e, RED)
+        new AIFighter(this.universe, vec(-1000, -1000), e, RED)
+        new AIFighter(this.universe, vec(-2000, -2000), e, RED)
+        new AIFighter(this.universe, vec(500, 500), e, RED)
     }
 
     runNextFrame() {
