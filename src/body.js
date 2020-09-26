@@ -1,6 +1,7 @@
 import vec from "./vector.js"
 import Rect from "./rectangle.js"
 
+const ORANGE = "#FFA600"
 
 class Body {
     constructor(universe, pos) {
@@ -18,10 +19,10 @@ class Body {
     }
 
     update(dt, t) {
-        this.lifetime += t
+        this.lifetime += dt
         let kill = this.process(dt, t)
         if (kill) {
-            this.universe.bodies.remove(this)
+            this.universe.remove_body(this)
             delete this
             return
         }
@@ -102,16 +103,69 @@ class PolygonalBody extends Body {
         })
         let w = xmax - xmin
         let h = ymax - ymin
-        return Rect(xmin, ymin, w, h)
+        return new Rect(xmin, ymin, w, h)
     }
 
     radius_collision(point) {
-        let distance_sq = this.centroid(this.get_global_points()).distanceSq(point)
-        return distance_sq <= this.approx_radius ** 2
+        let distance = this.pos.clone().subtract(this.centroid(this.points)).distance(point)
+        console.log(this.approx_radius)
+        return distance <= this.approx_radius
     }
 
     draw(context) {
         this.universe.draw_poly(context, this.color, this.get_global_points())
+        let center = this.pos.clone().subtract(this.centroid(this.points))
+        this.universe.draw_circle(context, this.color, center, this.approx_radius, 1, false)
+    }
+}
+
+
+class Laser extends CircularBody {
+    constructor(universe, pos, color, radius) {
+        super(universe, pos, color, radius)
+
+        this.length = 35 * this.radius
+
+        this.exploding = false
+        this.exploding_start = null
+        this.explosion_life = 0.2
+
+        this.full_life_length = 5
+    }
+
+    process(dt, t) {
+        if (this.exploding && t - this.exploding_start > this.explosion_life) {
+            return true
+        }
+
+        if (this.lifetime > dt) {
+            this.universe.bodies.forEach(body => {
+                if ((typeof body.hp !== 'undefined') && body.get_aabb_rect().collide_point(this.pos)) {
+                    if (body.radius_collision(this.pos)) {
+                        this.exploding = true
+                        this.exploding_start = t
+                        this.vel.rotate(Math.random() * Math.PI * 0.25)
+                        this.full_life_length *= 0.5
+                        body.hp -= Math.round(7 - this.lifetime)
+                        this.color = ORANGE
+                        console.log("blamo")
+                    }
+                }
+            })
+
+            if (this.lifetime >= this.full_life_length) {
+                return true
+            }
+        }
+    }
+
+    draw(context) {
+        if (this.exploding) {
+            this.universe.draw_circle(context, this.color, this.pos, this.radius * 3)
+        } else {
+            this.universe.draw_circle(context, this.color, this.pos, this.radius) 
+        }
+
     }
 }
 
@@ -160,8 +214,8 @@ class Fighter extends PolygonalBody {
     fire_laser(t) {
         if (t - this.last_laser_shot > this.shot_delay) {
             this.last_laser_shot = t
-            let l = new Laser(this.universe, this.get_global_points()[0], this.laser_color, 1)
-            l.vel = vec(0, this.vel.length() + 500).invert().rotate(this.rot) // TODO: add spread
+            let l = new Laser(this.universe, this.get_global_points()[0], this.laser_color, 2)
+            l.vel = vec(0, this.vel.length() + 600).invert().rotate(this.rot) // TODO: add spread
         }
     }
 
@@ -184,13 +238,17 @@ class PlayerFighter extends Fighter {
 
     process(dt, t) {
         // if dead, don't do anything else
-        if (this.handle_death()) return
+        if (this.hp <= 0) {
+            this.hp = 0
+            this.color = "#FFa500"
+            this.vel.mix(vec(0, 0), this.dec * dt)
+            return false // do not kill self
+        }
 
         // handle turning
         if (this.controller.pressed(this.controller.left)) {
             this.rot -= this.rot_speed * dt
-        }
-        else if (this.controller.pressed(this.controller.right)) {
+        } else if (this.controller.pressed(this.controller.right)) {
             this.rot += this.rot_speed * dt
         }
 
@@ -198,15 +256,88 @@ class PlayerFighter extends Fighter {
         if (this.controller.pressed(this.controller.up)) {
             this.vel.subtract(vec(0, this.acceleration).rotate(this.rot).scaled(dt))
             this.actively_moving = true
-        }
-        else {
+        } else {
             this.actively_moving = false
         }
 
         if (this.vel.length() > this.fly_speed) this.vel = this.vel.clone().norm().scaled(this.fly_speed)
         
-        // TODO: handle 'space' bar press for fire
+        // handle space bar press for fire
+        if (this.controller.pressed(this.controller.fire)) {
+            this.fire_laser(t)
+        }
     }
 }
 
-export default PlayerFighter
+
+class AIFighter extends Fighter {
+    constructor(universe, pos, equipment, faction) {
+        super(universe, pos, equipment, faction)
+        this.target = null
+    }
+
+    process(dt, t) {
+        if (this.hp <= 0) {
+            this.hp = 0
+            this.color = "#FFa500"
+            this.vel.mix(vec(0, 0), this.dec * dt)
+            return false // do not kill self
+        }
+        let closest = null
+        let closest_distance = 10000000
+        this.universe.bodies.forEach(body => {
+            if (closest === null) {
+                closest = body
+            }
+            let need_continue = false
+            if (!(body instanceof Fighter)) need_continue = true
+            else if (body.faction === this.faction || body.hp <= 0) need_continue = true
+
+            if (!need_continue) {
+                let distance_sq = this.pos.distanceSq(body.pos)
+                if (distance_sq < closest_distance) {
+                    closest_distance = distance_sq
+                    closest = body
+                }
+            }
+        })
+        this.target = closest
+
+        if (this.rot < 0) this.rot += 360
+        else if (this.rot > 360) this.rot %= 360
+
+        let desired_angle = vec(0, 1).angle() + this.target.pos.clone().subtract(this.pos).angle()
+        let desired_rotation = desired_angle - this.rot
+
+        if (desired_rotation < 0) desired_rotation += 2 * Math.PI
+        else if (desired_rotation > 2 * Math.PI) desired_rotation -= 2 * Math.PI
+
+        // rotate as much as possible (TODO: fix this)
+        let max_rotation_amount = this.rot_speed * dt
+        if (max_rotation_amount > desired_rotation) {
+            this.rot += desired_rotation
+        } else {
+            this.rot += max_rotation_amount
+        }
+
+        if (desired_rotation < 30 && this.target.hp > 0 && this.faction != this.target.faction) {
+            this.fire_laser(t)
+        }
+
+        if (this.pos.distance(this.target.pos) > 50 && desired_rotation < 10) {
+            this.vel.subtract(vec(0, this.acceleration).rotate(this.rot).scaled(dt))
+        } else {
+            this.vel.mix(vec(0, 0), this.dec * dt)
+        }
+
+        if (this.vel.length() > this.fly_speed) {
+            this.vel.normalize().scale_ip(this.fly_speed)
+        }
+    }
+}
+
+export default {
+    PlayerFighter,
+    AIFighter,
+    CircularBody
+}

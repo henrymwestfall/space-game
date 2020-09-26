@@ -6,6 +6,7 @@ class Controller {
         this.right = "ArrowRight"
         this.up = "ArrowUp"
         this.down = "ArrowDown"
+        this.fire = "Space"
 
         document.addEventListener("keydown", (e) => this.log_keydown(e))
         document.addEventListener("keyup", (e) => this.log_keyup(e))

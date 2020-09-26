@@ -108,6 +108,4 @@ class Rect {
 	}
 }
 
-export default {
-    Rect
-}
+export default Rect

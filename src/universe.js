@@ -17,6 +17,13 @@ class Universe {
         }
     }
 
+    remove_body(body) {
+        const index = this.bodies.indexOf(body);
+        if (index > -1) {
+            this.bodies.splice(index, 1);
+        }
+    }
+
     update(dt, t) {
         if (self.focus != null) {
             this.camera = this.focus.pos.clone().subtract(vec(450, 300).scaled(1 / this.zoom))
@@ -41,15 +48,15 @@ class Universe {
         context.fillStyle = "#000000"
         context.fillRect(0, 0, 900, 600)
 
-        this.bodies.forEach(b => {
-            b.draw(context)
-        })
-        
         this.background.forEach(pos => {
             let rp = this.get_render_point(pos[0], pos[1])
             if (rp.x < 1000 && rp.x > -100 && rp.y < 700 && rp.y > -100) {
                 this.draw_circle(context, "#FFFFFF", pos[0], 2, pos[1])
             }
+        })
+        
+        this.bodies.forEach(b => {
+            b.draw(context)
         })
     }
 
@@ -65,12 +72,14 @@ class Universe {
         context.fill()
     }
 
-    draw_circle(context, color, global_center, radius, parallax=1) {
+    draw_circle(context, color, global_center, radius, parallax=1, fill=true) {
         let render_center = this.get_render_point(global_center, parallax)
         context.fillStyle = color
+        context.strokeStyle = color
         context.beginPath()
         context.arc(render_center.x, render_center.y, Math.max(radius * this.zoom, 1), 0, 2 * Math.PI)
-        context.fill()
+        if (fill) context.fill()
+        else context.stroke()
     }
 
     get_render_point(point, parallax=1) {
