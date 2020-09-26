@@ -1,4 +1,5 @@
 import vec from "./vector.js"
+import body from "./body.js"
 
 
 class Universe {
@@ -9,6 +10,9 @@ class Universe {
         this.zoom_speed = 0.5
         this.camera = vec(0, 0)
         this.focus = null
+
+        this.chunks = {}
+        this.chunk_size = 1000
 
         this.background = []
         for (let i=0; i<2500; ++i) {
@@ -22,6 +26,65 @@ class Universe {
         if (index > -1) {
             this.bodies.splice(index, 1);
         }
+    }
+
+    zero_adjusted(pos) {
+        const zero_adjusted = pos.clone()
+        if (pos.x == 0) {
+            zero_adjusted.x = 1
+        }
+        if (pos.y == 0) {
+            zero_adjusted.y = 1
+        }
+        return zero_adjusted
+    }
+
+    chunk_key(pos) {
+        const zero_adjusted = this.zero_adjusted(pos)
+        return `${Math.floor(zero_adjusted.x / this.chunk_size)};${Math.floor(zero_adjusted.y / this.chunk_size)}`
+    }
+
+    adjacent_chunk_keys(pos, reach=1) {
+        const zero_adjusted = this.zero_adjusted(pos)
+        const main_chunk_pos = vec(Math.floor(zero_adjusted.x / this.chunk_size), Math.floor(zero_adjusted.y / this.chunk_size))
+        const keys = []
+        for (let dx=-reach; dx<reach; ++dx) {
+            for (let dy=-reach; dy<reach; ++dy) {
+                const chunk_pos = vec(main_chunk_pos.x + dx, main_chunk_pos.y +dy)
+                keys.push(`${chunk_pos.x};${chunk_pos.y}`)
+            }
+        }
+        return keys
+    }
+
+    update_chunk_for(e) {
+        const key = this.chunk_key(e.pos)
+        if (key === e.chunk) {
+            return e.chunk
+        } else if (key in this.chunks && e.chunk in this.chunks) {
+            this.chunks[key].push(e)
+            const index = this.chunks[e.chunk].indexOf(e)
+            this.chunks[e.chunk].splice(index, 1)
+        } else if (key in this.chunks) {
+            this.chunks[key].push(e)
+        } else {
+            this.chunks[key] = [e]
+            console.log(`created new chunk ${key}`)
+        }
+        return key
+    }
+
+    get_nearby_bodies(e, reach=1) {
+        const keys = this.adjacent_chunk_keys(e.pos, reach)
+        const bodies = []
+        keys.forEach(key => {
+            if (key in this.chunks) {
+                this.chunks[key].forEach(body => {
+                    bodies.push(body)
+                })
+            }
+        })
+        return bodies
     }
 
     update(dt, t) {

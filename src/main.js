@@ -33,12 +33,10 @@ class Game {
             "shields": 0
         }
 
-        let p = new PlayerFighter(this.universe, this.controller, vec(0, 0), e, WHITE)
+        let p = new PlayerFighter(this.universe, this.controller, vec(100, 0), e, WHITE)
         this.universe.focus = p
 
-        new AIFighter(this.universe, vec(-1000, -1000), e, RED)
-        new AIFighter(this.universe, vec(-2000, -2000), e, RED)
-        new AIFighter(this.universe, vec(500, 500), e, RED)
+        new AIFighter(this.universe, vec(-500, 500 * 5), e, RED)
     }
 
     runNextFrame() {

@@ -14,11 +14,14 @@ class Body {
         this.vel = vec(0, 0)
         this.rot = 0
 
+        this.chunk = ""
+
         this.dec = 0
         this.actively_moving = false
     }
 
     update(dt, t) {
+        this.chunk = this.universe.update_chunk_for(this)
         this.lifetime += dt
         let kill = this.process(dt, t)
         if (kill) {
@@ -108,7 +111,6 @@ class PolygonalBody extends Body {
 
     radius_collision(point) {
         let distance = this.pos.clone().subtract(this.centroid(this.points)).distance(point)
-        console.log(this.approx_radius)
         return distance <= this.approx_radius
     }
 
@@ -131,7 +133,7 @@ class Laser extends CircularBody {
         this.exploding_start = null
         this.explosion_life = 0.2
 
-        this.full_life_length = 5
+        this.full_life_length = 10
 
         this.first_position = null
     }
@@ -146,16 +148,16 @@ class Laser extends CircularBody {
         }
 
         if (this.lifetime > dt) {
-            this.universe.bodies.forEach(body => {
+            this.universe.get_nearby_bodies(this).forEach(body => {
                 if ((typeof body.hp !== 'undefined') && body.get_aabb_rect().collide_point(this.pos) && body != this.parent) {
                     if (body.radius_collision(this.pos)) {
                         this.exploding = true
                         this.exploding_start = t
                         this.vel.rotate(Math.random() * Math.PI * 0.25)
                         this.full_life_length *= 0.5
-                        body.hp -= Math.round(7 - this.lifetime)
+                        body.hp -= 10
                         this.color = ORANGE
-                        console.log("blamo")
+                        this.parent = body
                     }
                 }
             })
