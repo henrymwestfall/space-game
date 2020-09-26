@@ -1360,6 +1360,8 @@ function _defineProperties(target, props) { for (var i = 0; i < props.length; i+
 
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
+var ORANGE = "#FFA600";
+
 var Body = /*#__PURE__*/function () {
   function Body(universe, pos) {
     _classCallCheck(this, Body);
@@ -1370,6 +1372,7 @@ var Body = /*#__PURE__*/function () {
     this.pos = pos;
     this.vel = (0, _vector["default"])(0, 0);
     this.rot = 0;
+    this.chunk = "";
     this.dec = 0;
     this.actively_moving = false;
   }
@@ -1377,17 +1380,18 @@ var Body = /*#__PURE__*/function () {
   _createClass(Body, [{
     key: "update",
     value: function update(dt, t) {
-      this.lifetime += t;
+      this.chunk = this.universe.update_chunk_for(this);
+      this.lifetime += dt;
       var kill = this.process(dt, t);
 
       if (kill) {
-        this.universe.bodies.remove(this);
+        this.universe.remove_body(this);
         delete this;
         return;
       }
 
       if (!this.actively_moving) this.vel = this.vel.mix((0, _vector["default"])(0, 0), this.dec * dt);
-      this.pos = this.pos.add(this.pos.scaled(dt));
+      this.pos.add(this.vel.scaled(dt));
     }
   }, {
     key: "process",
@@ -1493,52 +1497,139 @@ var PolygonalBody = /*#__PURE__*/function (_Body2) {
       });
       var w = xmax - xmin;
       var h = ymax - ymin;
-      return (0, _rectangle["default"])(xmin, ymin, w, h);
+      return new _rectangle["default"](xmin, ymin, w, h);
     }
   }, {
     key: "radius_collision",
     value: function radius_collision(point) {
-      var distance_sq = this.centroid(this.get_global_points()).distanceSq(point);
-      return distance_sq <= Math.pow(this.approx_radius, 2);
+      var distance = this.pos.clone().subtract(this.centroid(this.points)).distance(point);
+      return distance <= this.approx_radius;
     }
   }, {
     key: "draw",
     value: function draw(context) {
-      this.universe.draw_poly(context, this.color, this.get_global_points());
+      this.universe.draw_poly(context, this.color, this.get_global_points()); //let center = this.pos.clone().subtract(this.centroid(this.points))
+      //this.universe.draw_circle(context, this.color, center, this.approx_radius, 1, false)
     }
   }]);
 
   return PolygonalBody;
 }(Body);
 
+var Laser = /*#__PURE__*/function (_CircularBody) {
+  _inherits(Laser, _CircularBody);
+
+  var _super3 = _createSuper(Laser);
+
+  function Laser(universe, parent, pos, color, radius) {
+    var _this4;
+
+    _classCallCheck(this, Laser);
+
+    _this4 = _super3.call(this, universe, pos, color, radius);
+    _this4.parent = parent;
+    _this4.length = 15 * _this4.radius;
+    _this4.exploding = false;
+    _this4.exploding_start = null;
+    _this4.explosion_life = 0.2;
+    _this4.full_life_length = 10;
+    _this4.first_position = null;
+    return _this4;
+  }
+
+  _createClass(Laser, [{
+    key: "process",
+    value: function process(dt, t) {
+      var _this5 = this;
+
+      if (dt == this.lifetime) {
+        this.first_position = this.pos.clone();
+      }
+
+      if (this.exploding && t - this.exploding_start > this.explosion_life) {
+        return true;
+      }
+
+      if (this.lifetime > dt) {
+        this.universe.get_nearby_bodies(this).forEach(function (body) {
+          if (typeof body.hp !== 'undefined' && body.get_aabb_rect().collide_point(_this5.pos) && body != _this5.parent) {
+            if (body.radius_collision(_this5.pos)) {
+              _this5.exploding = true;
+              _this5.exploding_start = t;
+
+              _this5.vel.rotate(Math.random() * Math.PI * 0.25);
+
+              _this5.full_life_length *= 0.5;
+              body.hp -= 10;
+              _this5.color = ORANGE;
+              _this5.parent = body;
+            }
+          }
+        });
+
+        if (this.lifetime >= this.full_life_length) {
+          return true;
+        }
+      }
+    }
+  }, {
+    key: "draw",
+    value: function draw(context) {
+      if (this.exploding) {
+        this.universe.draw_circle(context, this.color, this.pos, this.radius * 3);
+      } else {
+        this.universe.draw_circle(context, this.color, this.pos, this.radius); // draw streak
+
+        var streak_end = this.vel.clone().norm().invert().scaled(this.length).add(this.pos);
+        var lerp_amount = 0.3;
+
+        if (this.first_position != null) {
+          for (var i = 0; i < this.length; ++i) {
+            var streak_to_original = this.first_position.clone().subtract(streak_end).norm();
+            var pos_to_original = this.first_position.clone().subtract(this.pos).norm();
+
+            if (streak_to_original.dot(pos_to_original) == 1 || this.lifetime > this.length / this.vel.length()) {
+              this.universe.draw_circle(context, this.color, streak_end, this.radius);
+            }
+
+            streak_end.mix(this.pos, lerp_amount);
+          }
+        }
+      }
+    }
+  }]);
+
+  return Laser;
+}(CircularBody);
+
 var Fighter = /*#__PURE__*/function (_PolygonalBody) {
   _inherits(Fighter, _PolygonalBody);
 
-  var _super3 = _createSuper(Fighter);
+  var _super4 = _createSuper(Fighter);
 
   function Fighter(universe, pos, equipment, faction) {
-    var _this4;
+    var _this6;
 
     _classCallCheck(this, Fighter);
 
     var points = [(0, _vector["default"])(0, 15), (0, _vector["default"])(12, -15), (0, _vector["default"])(0, -10), (0, _vector["default"])(-12, -15)];
-    _this4 = _super3.call(this, universe, pos, points, faction);
-    _this4.faction = faction;
-    _this4.equipment = equipment; // attributes to be changed when ship is equiped
+    _this6 = _super4.call(this, universe, pos, points, faction);
+    _this6.faction = faction;
+    _this6.equipment = equipment; // attributes to be changed when ship is equiped
 
-    _this4.rot_speed = 0;
-    _this4.fly_speed = 0;
-    _this4.acceleration = 0;
-    _this4.last_laser_shot = -100;
-    _this4.shot_delay = 0;
-    _this4.shot_spread = 0;
-    _this4.laser_color = "#00FFFF";
-    _this4.hp = 0;
-    _this4.shields = 0;
+    _this6.rot_speed = 0;
+    _this6.fly_speed = 0;
+    _this6.acceleration = 0;
+    _this6.last_laser_shot = -100;
+    _this6.shot_delay = 0;
+    _this6.shot_spread = 0;
+    _this6.laser_color = "#00FFFF";
+    _this6.hp = 0;
+    _this6.shields = 0;
 
-    _this4.equip();
+    _this6.equip();
 
-    return _this4;
+    return _this6;
   }
 
   _createClass(Fighter, [{
@@ -1559,7 +1650,7 @@ var Fighter = /*#__PURE__*/function (_PolygonalBody) {
     value: function fire_laser(t) {
       if (t - this.last_laser_shot > this.shot_delay) {
         this.last_laser_shot = t;
-        var l = new Laser(this.universe, this.get_global_points()[0], this.laser_color, 1);
+        var l = new Laser(this.universe, this, this.get_global_points()[0], this.laser_color, 3);
         l.vel = (0, _vector["default"])(0, this.vel.length() + 500).invert().rotate(this.rot); // TODO: add spread
       }
     }
@@ -1582,23 +1673,29 @@ var Fighter = /*#__PURE__*/function (_PolygonalBody) {
 var PlayerFighter = /*#__PURE__*/function (_Fighter) {
   _inherits(PlayerFighter, _Fighter);
 
-  var _super4 = _createSuper(PlayerFighter);
+  var _super5 = _createSuper(PlayerFighter);
 
   function PlayerFighter(universe, controller, pos, equipment, faction) {
-    var _this5;
+    var _this7;
 
     _classCallCheck(this, PlayerFighter);
 
-    _this5 = _super4.call(this, universe, pos, equipment, faction);
-    _this5.controller = controller;
-    return _this5;
+    _this7 = _super5.call(this, universe, pos, equipment, faction);
+    _this7.controller = controller;
+    return _this7;
   }
 
   _createClass(PlayerFighter, [{
     key: "process",
     value: function process(dt, t) {
       // if dead, don't do anything else
-      if (this.handle_death()) return; // handle turning
+      if (this.hp <= 0) {
+        this.hp = 0;
+        this.color = "#FFa500";
+        this.vel.mix((0, _vector["default"])(0, 0), this.dec * dt);
+        return false; // do not kill self
+      } // handle turning
+
 
       if (this.controller.pressed(this.controller.left)) {
         this.rot -= this.rot_speed * dt;
@@ -1608,20 +1705,107 @@ var PlayerFighter = /*#__PURE__*/function (_Fighter) {
 
 
       if (this.controller.pressed(this.controller.up)) {
-        this.vel = this.vel.clone().subtract((0, _vector["default"])(0, this.acceleration).rotate(this.rot).scaled(dt));
+        this.vel.subtract((0, _vector["default"])(0, this.acceleration).rotate(this.rot).scaled(dt));
         this.actively_moving = true;
       } else {
         this.actively_moving = false;
       }
 
-      if (this.vel.length() > this.fly_speed) this.vel = this.vel.clone().norm().scaled(this.fly_speed); // TODO: handle 'space' bar press for fire
+      if (this.vel.length() > this.fly_speed) this.vel = this.vel.clone().norm().scaled(this.fly_speed); // handle space bar press for fire
+
+      if (this.controller.pressed(this.controller.fire)) {
+        this.fire_laser(t);
+      }
     }
   }]);
 
   return PlayerFighter;
 }(Fighter);
 
-var _default = PlayerFighter;
+var AIFighter = /*#__PURE__*/function (_Fighter2) {
+  _inherits(AIFighter, _Fighter2);
+
+  var _super6 = _createSuper(AIFighter);
+
+  function AIFighter(universe, pos, equipment, faction) {
+    var _this8;
+
+    _classCallCheck(this, AIFighter);
+
+    _this8 = _super6.call(this, universe, pos, equipment, faction);
+    _this8.target = null;
+    return _this8;
+  }
+
+  _createClass(AIFighter, [{
+    key: "process",
+    value: function process(dt, t) {
+      var _this9 = this;
+
+      if (this.hp <= 0) {
+        this.hp = 0;
+        this.color = "#FFa500";
+        this.vel.mix((0, _vector["default"])(0, 0), this.dec * dt);
+        return false; // do not kill self
+      }
+
+      var closest = null;
+      var closest_distance = 10000000;
+      this.universe.bodies.forEach(function (body) {
+        if (closest === null) {
+          closest = body;
+        }
+
+        var need_continue = false;
+        if (!(body instanceof Fighter)) need_continue = true;else if (body.faction === _this9.faction || body.hp <= 0) need_continue = true;
+
+        if (!need_continue) {
+          var distance_sq = _this9.pos.distanceSq(body.pos);
+
+          if (distance_sq < closest_distance) {
+            closest_distance = distance_sq;
+            closest = body;
+          }
+        }
+      });
+      this.target = closest;
+      if (this.rot < 0) this.rot += 360;else if (this.rot > 360) this.rot %= 360;
+      var desired_angle = (0, _vector["default"])(0, 1).angle() + this.target.pos.clone().subtract(this.pos).angle();
+      var desired_rotation = desired_angle - this.rot;
+      if (desired_rotation < 0) desired_rotation += 2 * Math.PI;else if (desired_rotation > 2 * Math.PI) desired_rotation -= 2 * Math.PI; // rotate as much as possible (TODO: fix this)
+
+      var max_rotation_amount = this.rot_speed * dt;
+
+      if (max_rotation_amount > desired_rotation) {
+        this.rot += desired_rotation;
+      } else {
+        this.rot += max_rotation_amount;
+      }
+
+      if (desired_rotation < 30 && this.target.hp > 0 && this.faction != this.target.faction) {
+        this.fire_laser(t);
+      }
+
+      if (this.pos.distance(this.target.pos) > 50 && desired_rotation < 10) {
+        this.vel.subtract((0, _vector["default"])(0, this.acceleration).rotate(this.rot).scaled(dt));
+      } else {
+        this.vel.mix((0, _vector["default"])(0, 0), this.dec * dt);
+      }
+
+      if (this.vel.length() > this.fly_speed) {
+        this.vel.normalize().scale_ip(this.fly_speed);
+      }
+    }
+  }]);
+
+  return AIFighter;
+}(Fighter);
+
+var _default = {
+  PlayerFighter: PlayerFighter,
+  AIFighter: AIFighter,
+  CircularBody: CircularBody
+};
 exports["default"] = _default;
 
 },{"./rectangle.js":5,"./vector.js":7}],3:[function(require,module,exports){
@@ -1645,11 +1829,12 @@ var Controller = /*#__PURE__*/function () {
     _classCallCheck(this, Controller);
 
     this.keys = {};
-    this.left = 37;
-    this.right = 39;
-    this.up = 38;
-    this.down = 40;
-    document.addEventListener("keypress", function (e) {
+    this.left = "ArrowLeft";
+    this.right = "ArrowRight";
+    this.up = "ArrowUp";
+    this.down = "ArrowDown";
+    this.fire = "Space";
+    document.addEventListener("keydown", function (e) {
       return _this.log_keydown(e);
     });
     document.addEventListener("keyup", function (e) {
@@ -1665,15 +1850,16 @@ var Controller = /*#__PURE__*/function () {
   }, {
     key: "log_keyup",
     value: function log_keyup(e) {
+      console.log(e.code);
       this.keys[e.code] = false;
     }
   }, {
     key: "pressed",
     value: function pressed(key_code) {
-      if (this.keys.key_code == undefined) {
+      if (this.keys[key_code] == undefined) {
         return false;
       } else {
-        return this.keys.key_code;
+        return this.keys[key_code];
       }
     }
   }]);
@@ -1703,6 +1889,8 @@ function _defineProperties(target, props) { for (var i = 0; i < props.length; i+
 
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
+var PlayerFighter = _body["default"].PlayerFighter;
+var AIFighter = _body["default"].AIFighter;
 var CYAN = "#00FFFF";
 var RED = "#FF0000";
 var GREEN = "#00FF00";
@@ -1720,7 +1908,7 @@ var Game = /*#__PURE__*/function () {
     this.universe = new _universe["default"]();
     this.controller = new _controller["default"]();
     var e = {
-      "rot speed": 360,
+      "rot speed": Math.PI * 2,
       "fly speed": 1000,
       "acceleration": 300,
       "dec": 1.0,
@@ -1730,8 +1918,11 @@ var Game = /*#__PURE__*/function () {
       "shot spread": 2,
       "shields": 0
     };
-    var p = new _body["default"](this.universe, this.controller, (0, _vector["default"])(0, 0), e, WHITE);
+    var p = new PlayerFighter(this.universe, this.controller, (0, _vector["default"])(100, 0), e, WHITE);
     this.universe.focus = p;
+    new AIFighter(this.universe, (0, _vector["default"])(-500, 500 * 5), e, RED);
+    new AIFighter(this.universe, (0, _vector["default"])(-1000, 500 * 5), e, RED);
+    new AIFighter(this.universe, (0, _vector["default"])(-1500, 500 * 5), e, RED);
   }
 
   _createClass(Game, [{
@@ -1741,6 +1932,10 @@ var Game = /*#__PURE__*/function () {
 
       var dt = this.getElapsedSeconds();
       this.t += dt;
+      document.getElementById("fps").innerHTML = "FPS: ".concat(Math.round(1 / dt));
+      document.getElementById("health").innerHTML = "Health: ".concat(this.universe.focus.hp, "%");
+      document.getElementById("speed").innerHTML = "Speed: ".concat(Math.round(this.universe.focus.vel.length()), " px/s");
+      document.getElementById("pos").innerHTML = "Coordinates: ".concat([Math.round(this.universe.focus.pos.x), Math.round(this.universe.focus.pos.y)]);
       this.universe.update(dt, this.t);
       this.universe.render(this.ctx);
       requestAnimationFrame(function () {
@@ -1751,7 +1946,13 @@ var Game = /*#__PURE__*/function () {
     key: "getElapsedSeconds",
     value: function getElapsedSeconds() {
       var now = new Date().getTime();
-      var elapsed = now - this.timeOfLastFrame;
+
+      if (this.timeOfLastFrame == null) {
+        var elapsed = 0;
+      } else {
+        var elapsed = now - this.timeOfLastFrame;
+      }
+
       this.timeOfLastFrame = now;
       return elapsed * 0.001; // convert to seconds
     }
@@ -1921,9 +2122,7 @@ var Rect = /*#__PURE__*/function () {
   return Rect;
 }();
 
-var _default = {
-  Rect: Rect
-};
+var _default = Rect;
 exports["default"] = _default;
 
 },{}],6:[function(require,module,exports){
@@ -1935,6 +2134,8 @@ Object.defineProperty(exports, "__esModule", {
 exports["default"] = void 0;
 
 var _vector = _interopRequireDefault(require("./vector.js"));
+
+var _body = _interopRequireDefault(require("./body.js"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
 
@@ -1951,15 +2152,116 @@ var Universe = /*#__PURE__*/function () {
     this.bodies = [];
     this.particles = [];
     this.zoom = 1;
+    this.zoom_speed = 0.5;
     this.camera = (0, _vector["default"])(0, 0);
     this.focus = null;
+    this.chunks = {};
+    this.chunk_size = 1000;
+    this.background = [];
+
+    for (var i = 0; i < 2500; ++i) {
+      var pos = (0, _vector["default"])(Math.round(Math.random() * 40000 - 20000), Math.round(Math.random() * 40000 - 20000));
+      this.background.push([pos, Math.random() * 0.5]);
+    }
   }
 
   _createClass(Universe, [{
+    key: "remove_body",
+    value: function remove_body(body) {
+      var index = this.bodies.indexOf(body);
+
+      if (index > -1) {
+        this.bodies.splice(index, 1);
+      }
+    }
+  }, {
+    key: "zero_adjusted",
+    value: function zero_adjusted(pos) {
+      var zero_adjusted = pos.clone();
+
+      if (pos.x == 0) {
+        zero_adjusted.x = 1;
+      }
+
+      if (pos.y == 0) {
+        zero_adjusted.y = 1;
+      }
+
+      return zero_adjusted;
+    }
+  }, {
+    key: "chunk_key",
+    value: function chunk_key(pos) {
+      var zero_adjusted = this.zero_adjusted(pos);
+      return "".concat(Math.floor(zero_adjusted.x / this.chunk_size), ";").concat(Math.floor(zero_adjusted.y / this.chunk_size));
+    }
+  }, {
+    key: "adjacent_chunk_keys",
+    value: function adjacent_chunk_keys(pos) {
+      var reach = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 1;
+      var zero_adjusted = this.zero_adjusted(pos);
+      var main_chunk_pos = (0, _vector["default"])(Math.floor(zero_adjusted.x / this.chunk_size), Math.floor(zero_adjusted.y / this.chunk_size));
+      var keys = [];
+
+      for (var dx = -reach; dx < reach; ++dx) {
+        for (var dy = -reach; dy < reach; ++dy) {
+          var chunk_pos = (0, _vector["default"])(main_chunk_pos.x + dx, main_chunk_pos.y + dy);
+          keys.push("".concat(chunk_pos.x, ";").concat(chunk_pos.y));
+        }
+      }
+
+      return keys;
+    }
+  }, {
+    key: "update_chunk_for",
+    value: function update_chunk_for(e) {
+      var key = this.chunk_key(e.pos);
+
+      if (key === e.chunk) {
+        return e.chunk;
+      } else if (key in this.chunks && e.chunk in this.chunks) {
+        this.chunks[key].push(e);
+        var index = this.chunks[e.chunk].indexOf(e);
+        this.chunks[e.chunk].splice(index, 1);
+      } else if (key in this.chunks) {
+        this.chunks[key].push(e);
+      } else {
+        this.chunks[key] = [e];
+        console.log("created new chunk ".concat(key));
+      }
+
+      return key;
+    }
+  }, {
+    key: "get_nearby_bodies",
+    value: function get_nearby_bodies(e) {
+      var _this = this;
+
+      var reach = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 1;
+      var keys = this.adjacent_chunk_keys(e.pos, reach);
+      var bodies = [];
+      keys.forEach(function (key) {
+        if (key in _this.chunks) {
+          _this.chunks[key].forEach(function (body) {
+            bodies.push(body);
+          });
+        }
+      });
+      return bodies;
+    }
+  }, {
     key: "update",
     value: function update(dt, t) {
       if (self.focus != null) {
-        this.camera = this.focus.pos.clone().subtract((0, _vector["default"])(450, 300).scaled(1 / this.zoom)); // TODO: zoom at high speeds
+        this.camera = this.focus.pos.clone().subtract((0, _vector["default"])(450, 300).scaled(1 / this.zoom));
+
+        if (this.focus.vel.length() > 900) {
+          this.zoom = (0, _vector["default"])(this.zoom, 0).mix((0, _vector["default"])(0.3, 0), this.zoom_speed * dt).x;
+        } else if (this.focus.vel.length() > 200) {
+          this.zoom = (0, _vector["default"])(this.zoom, 0).mix((0, _vector["default"])(0.5, 0), this.zoom_speed * dt).x;
+        } else {
+          this.zoom = (0, _vector["default"])(this.zoom, 0).mix((0, _vector["default"])(1, 0), this.zoom_speed * dt).x;
+        }
       } // update children
 
 
@@ -1970,45 +2272,49 @@ var Universe = /*#__PURE__*/function () {
   }, {
     key: "render",
     value: function render(context) {
+      var _this2 = this;
+
       context.fillStyle = "#000000";
       context.fillRect(0, 0, 900, 600);
+      this.background.forEach(function (pos) {
+        var rp = _this2.get_render_point(pos[0], pos[1]);
+
+        if (rp.x < 1000 && rp.x > -100 && rp.y < 700 && rp.y > -100) {
+          _this2.draw_circle(context, "#FFFFFF", pos[0], 2, pos[1]);
+        }
+      });
       this.bodies.forEach(function (b) {
         b.draw(context);
       });
-      context.fillStyle = "#FF0000";
-      context.beginPath();
-      context.moveTo(0, 0);
-      context.lineWidth = 5;
-      context.lineTo(900, 600);
-      context.stroke();
     }
   }, {
     key: "draw_poly",
     value: function draw_poly(context, color, global_points) {
+      var _this3 = this;
+
       var parralax = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 1;
       context.fillStyle = color;
+      var s = this.get_render_point(global_points[0]);
       context.beginPath();
-      context.moveTo(global_points[0].x, global_points[0].y);
-      var r_points = [];
+      context.moveTo(s.x, s.y);
+      global_points.forEach(function (p) {
+        var rp = _this3.get_render_point(p);
 
-      for (var i = 1; i <= global_points.size; ++i) {
-        var point = global_points[i];
-        var render_point = this.get_render_point(point, parralax);
-        r_points.push(render_point);
-        context.lineTo(render_point.x, render_point.x);
-      }
-
-      context.stroke();
+        context.lineTo(rp.x, rp.y);
+      });
+      context.fill();
     }
   }, {
     key: "draw_circle",
     value: function draw_circle(context, color, global_center, radius) {
       var parallax = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : 1;
-      var render_center = this.get_render_point(global_center);
+      var fill = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : true;
+      var render_center = this.get_render_point(global_center, parallax);
       context.fillStyle = color;
+      context.strokeStyle = color;
       context.beginPath();
-      context.arc(render_center.x, render_center.y, radius * this.zoom, 0, 2 * Math.PI);
-      context.fill();
+      context.arc(render_center.x, render_center.y, Math.max(radius * this.zoom, 1), 0, 2 * Math.PI);
+      if (fill) context.fill();else context.stroke();
     }
   }, {
     key: "get_render_point",
@@ -2024,7 +2330,7 @@ var Universe = /*#__PURE__*/function () {
 var _default = Universe;
 exports["default"] = _default;
 
-},{"./vector.js":7}],7:[function(require,module,exports){
+},{"./body.js":2,"./vector.js":7}],7:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2041,6 +2347,10 @@ Vector.prototype.scale_ip = function (amount) {
 
 Vector.prototype.scaled = function (amount) {
   return new Vector(this.x * amount, this.y * amount);
+};
+
+Vector.prototype.angle_to = function (other) {
+  return this.angle - other.angle;
 };
 
 function vec(x, y) {

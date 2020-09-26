@@ -37,6 +37,9 @@ class Game {
         this.universe.focus = p
 
         new AIFighter(this.universe, vec(-500, 500 * 5), e, RED)
+        new AIFighter(this.universe, vec(-1000, 500 * 5), e, RED)
+        new AIFighter(this.universe, vec(-1500, 500 * 5), e, RED)
+
     }
 
     runNextFrame() {
