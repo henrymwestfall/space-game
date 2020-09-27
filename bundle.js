@@ -1559,7 +1559,7 @@ var Laser = /*#__PURE__*/function (_CircularBody) {
 
               _this5.vel.rotate(Math.random() * Math.PI * 0.25);
 
-              _this5.full_life_length *= 0.5;
+              _this5.full_life_length = _this5.lifetime + 0.5;
               body.hp -= 10;
               _this5.color = ORANGE;
               _this5.parent = body;
