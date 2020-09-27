@@ -154,7 +154,7 @@ class Laser extends CircularBody {
                         this.exploding = true
                         this.exploding_start = t
                         this.vel.rotate(Math.random() * Math.PI * 0.25)
-                        this.full_life_length *= 0.5
+                        this.full_life_length = this.lifetime + 0.5
                         body.hp -= 10
                         this.color = ORANGE
                         this.parent = body
