@@ -1,6 +1,8 @@
 import vec from "./vector.js"
 import Rect from "./rectangle.js"
 
+//var greinerHormann = require('greiner-hormann')
+
 const ORANGE = "#FFA600"
 
 class Body {
@@ -107,6 +109,17 @@ class PolygonalBody extends Body {
         let w = xmax - xmin
         let h = ymax - ymin
         return new Rect(xmin, ymin, w, h)
+    }
+
+    get_global_side_vectors() {
+        let vectors = []
+        let last = null
+        for (let p of this.get_global_points()) {
+            if (last == null) {
+                last = p
+                continue
+            }
+        }
     }
 
     radius_collision(point) {
@@ -362,7 +375,6 @@ class AIFighter extends Fighter {
 }
 
 export default {
-    PlayerFighter,
-    AIFighter,
+    PolygonalBody,
     CircularBody
 }

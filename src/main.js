@@ -1,9 +1,11 @@
 import Universe from "./universe.js"
 import Controller from "./controller.js"
-import body from "./body.js"
-const PlayerFighter = body.PlayerFighter
-const AIFighter = body.AIFighter
+import ship from "./ship.js"
 import vec from "./vector.js"
+
+const AIFighter = ship.AIFighter
+const PlayerFighter = ship.PlayerFighter
+const Corvette = ship.Corvette
 
 const CYAN = "#00FFFF"
 const RED = "#FF0000"
@@ -37,12 +39,14 @@ class Game {
         let p = new PlayerFighter(this.universe, this.controller, vec(100, 0), e, WHITE)
         this.universe.focus = p
 
-        new AIFighter(this.universe, vec(-500, 500 * 5), e, RED)
-        new AIFighter(this.universe, vec(-1000, 500 * 5), e, RED)
-        new AIFighter(this.universe, vec(-1500, 500 * 5), e, RED)
-        new AIFighter(this.universe, vec(-5000, 500 * 5), e, RED)
-        new AIFighter(this.universe, vec(-10000, 500 * 5), e, RED)
-        new AIFighter(this.universe, vec(-15000, 500 * 5), e, RED)
+        // new AIFighter(this.universe, vec(-500, 500 * 5), e, RED)
+        // new AIFighter(this.universe, vec(-1000, 500 * 5), e, RED)
+        // new AIFighter(this.universe, vec(-1500, 500 * 5), e, RED)
+        // new AIFighter(this.universe, vec(-5000, 500 * 5), e, RED)
+        // new AIFighter(this.universe, vec(-10000, 500 * 5), e, RED)
+        // new AIFighter(this.universe, vec(-15000, 500 * 5), e, RED)
+
+        new Corvette(this.universe, vec(100, -100), GREEN)
     }
 
     runNextFrame() {

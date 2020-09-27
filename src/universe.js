@@ -144,6 +144,17 @@ class Universe {
         else context.stroke()
     }
 
+    draw_line(context, color, start, end, width, parallax=1) {
+        context.strokeStyle = color
+        context.lineWidth = width
+        context.beginPath()
+        let start_render = this.get_render_point(start, parallax)
+        let end_render = this.get_render_point(end, parallax)
+        context.moveTo(start_render.x, start_render.y)
+        context.lineTo(end_render.x, end_render.y)
+        context.stroke()
+    }
+
     get_render_point(point, parallax=1) {
         return point.clone().subtract(this.camera).scaled(this.zoom * parallax)
     }
