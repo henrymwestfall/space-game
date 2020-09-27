@@ -81,6 +81,12 @@ window.onload = () => {
     canvas.width = 900
     canvas.height = 600
 
+    window.addEventListener('keydown', function(e) {
+        if(e.keyCode == 32 && e.target == document.body) {
+          e.preventDefault()
+        }
+      })
+
     game = new Game(canvas)
     requestAnimationFrame(() => {
         game.runNextFrame()
