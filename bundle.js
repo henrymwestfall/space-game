@@ -2122,15 +2122,14 @@ var Game = /*#__PURE__*/function () {
       "shields": 0
     };
     var p = new PlayerFighter(this.universe, this.controller, (0, _vector["default"])(100, 0), e, WHITE);
-    this.universe.focus = p; // new AIFighter(this.universe, vec(-500, 500 * 5), e, RED)
-    // new AIFighter(this.universe, vec(-1000, 500 * 5), e, RED)
-    // new AIFighter(this.universe, vec(-1500, 500 * 5), e, RED)
-    // new AIFighter(this.universe, vec(-5000, 500 * 5), e, RED)
-    // new AIFighter(this.universe, vec(-10000, 500 * 5), e, RED)
-    // new AIFighter(this.universe, vec(-15000, 500 * 5), e, RED)
-
-    new Corvette(this.universe, (0, _vector["default"])(100, -100), GREEN);
-    new Corvette(this.universe, (0, _vector["default"])(300, -100), GREEN);
+    this.universe.focus = p;
+    new AIFighter(this.universe, (0, _vector["default"])(-500, 500 * 5), e, RED);
+    new AIFighter(this.universe, (0, _vector["default"])(-1000, 500 * 5), e, RED);
+    new AIFighter(this.universe, (0, _vector["default"])(-1500, 500 * 5), e, RED);
+    new AIFighter(this.universe, (0, _vector["default"])(-5000, 500 * 5), e, RED);
+    new AIFighter(this.universe, (0, _vector["default"])(-10000, 500 * 5), e, RED);
+    new AIFighter(this.universe, (0, _vector["default"])(-15000, 500 * 5), e, RED); // new Corvette(this.universe, vec(100, -100), GREEN)
+    // new Corvette(this.universe, vec(300, -100), GREEN)
   }
 
   _createClass(Game, [{
