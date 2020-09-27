@@ -69,7 +69,6 @@ class Universe {
             this.chunks[key].push(e)
         } else {
             this.chunks[key] = [e]
-            console.log(`created new chunk ${key}`)
         }
         return key
     }

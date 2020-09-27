@@ -1833,6 +1833,17 @@ var Controller = /*#__PURE__*/function () {
     this.right = "ArrowRight";
     this.up = "ArrowUp";
     this.down = "ArrowDown";
+    this.control_schemes = {
+      "Arrows": function Arrows() {
+        _this.set_arrow();
+      },
+      "WASD": function WASD() {
+        _this.set_wasd();
+      },
+      "IJKL": function IJKL() {
+        _this.set_ijkl();
+      }
+    };
     this.fire = "Space";
     document.addEventListener("keydown", function (e) {
       return _this.log_keydown(e);
@@ -1843,6 +1854,47 @@ var Controller = /*#__PURE__*/function () {
   }
 
   _createClass(Controller, [{
+    key: "update",
+    value: function update() {
+      var e = document.getElementById("control-set");
+      var set_controls = e.options[e.selectedIndex].value;
+      this.set_controls(set_controls);
+    }
+  }, {
+    key: "set_arrow",
+    value: function set_arrow() {
+      this.left = "ArrowLeft";
+      this.right = "ArrowRight";
+      this.up = "ArrowUp";
+      this.down = "ArrowDown";
+    }
+  }, {
+    key: "set_wasd",
+    value: function set_wasd() {
+      this.left = "KeyA";
+      this.right = "KeyD";
+      this.up = "KeyW";
+      this.down = "KeyS";
+    }
+  }, {
+    key: "set_ijkl",
+    value: function set_ijkl() {
+      this.left = "KeyJ";
+      this.right = "KeyL";
+      this.up = "KeyI";
+      this.down = "KeyK";
+    }
+  }, {
+    key: "get_control_setting",
+    value: function get_control_setting() {
+      return this.control_setting_names[this.control_setting];
+    }
+  }, {
+    key: "set_controls",
+    value: function set_controls(control_scheme_string) {
+      this.control_schemes[control_scheme_string]();
+    }
+  }, {
     key: "log_keydown",
     value: function log_keydown(e) {
       this.keys[e.code] = true;
@@ -1907,6 +1959,7 @@ var Game = /*#__PURE__*/function () {
     this.t = 0;
     this.universe = new _universe["default"]();
     this.controller = new _controller["default"]();
+    this.controller.set_ijkl();
     var e = {
       "rot speed": Math.PI * 2,
       "fly speed": 1000,
@@ -1919,10 +1972,9 @@ var Game = /*#__PURE__*/function () {
       "shields": 0
     };
     var p = new PlayerFighter(this.universe, this.controller, (0, _vector["default"])(100, 0), e, WHITE);
-    this.universe.focus = p;
-    new AIFighter(this.universe, (0, _vector["default"])(-500, 500 * 5), e, RED);
-    new AIFighter(this.universe, (0, _vector["default"])(-1000, 500 * 5), e, RED);
-    new AIFighter(this.universe, (0, _vector["default"])(-1500, 500 * 5), e, RED);
+    this.universe.focus = p; // new AIFighter(this.universe, vec(-500, 500 * 5), e, RED)
+    // new AIFighter(this.universe, vec(-1000, 500 * 5), e, RED)
+    // new AIFighter(this.universe, vec(-1500, 500 * 5), e, RED)
   }
 
   _createClass(Game, [{
@@ -1936,6 +1988,7 @@ var Game = /*#__PURE__*/function () {
       document.getElementById("health").innerHTML = "Health: ".concat(this.universe.focus.hp, "%");
       document.getElementById("speed").innerHTML = "Speed: ".concat(Math.round(this.universe.focus.vel.length()), " px/s");
       document.getElementById("pos").innerHTML = "Coordinates: ".concat([Math.round(this.universe.focus.pos.x), Math.round(this.universe.focus.pos.y)]);
+      this.controller.update();
       this.universe.update(dt, this.t);
       this.universe.render(this.ctx);
       requestAnimationFrame(function () {
@@ -2227,7 +2280,6 @@ var Universe = /*#__PURE__*/function () {
         this.chunks[key].push(e);
       } else {
         this.chunks[key] = [e];
-        console.log("created new chunk ".concat(key));
       }
 
       return key;

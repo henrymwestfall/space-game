@@ -20,6 +20,7 @@ class Game {
 
         this.universe = new Universe()
         this.controller = new Controller()
+        this.controller.set_ijkl()
 
         let e = {
             "rot speed": Math.PI * 2,
@@ -36,10 +37,9 @@ class Game {
         let p = new PlayerFighter(this.universe, this.controller, vec(100, 0), e, WHITE)
         this.universe.focus = p
 
-        new AIFighter(this.universe, vec(-500, 500 * 5), e, RED)
-        new AIFighter(this.universe, vec(-1000, 500 * 5), e, RED)
-        new AIFighter(this.universe, vec(-1500, 500 * 5), e, RED)
-
+        // new AIFighter(this.universe, vec(-500, 500 * 5), e, RED)
+        // new AIFighter(this.universe, vec(-1000, 500 * 5), e, RED)
+        // new AIFighter(this.universe, vec(-1500, 500 * 5), e, RED)
     }
 
     runNextFrame() {
@@ -51,6 +51,7 @@ class Game {
         document.getElementById("speed").innerHTML = `Speed: ${Math.round(this.universe.focus.vel.length())} px/s`
         document.getElementById("pos").innerHTML = `Coordinates: ${[Math.round(this.universe.focus.pos.x), Math.round(this.universe.focus.pos.y)]}`
 
+        this.controller.update()
         this.universe.update(dt, this.t)
         this.universe.render(this.ctx)
         
