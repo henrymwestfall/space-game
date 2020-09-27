@@ -1332,11 +1332,134 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports["default"] = void 0;
 
+var _body = _interopRequireDefault(require("./body.js"));
+
+var _vector = _interopRequireDefault(require("./vector.js"));
+
+var _projectile = _interopRequireDefault(require("./projectile.js"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
+
+function _get(target, property, receiver) { if (typeof Reflect !== "undefined" && Reflect.get) { _get = Reflect.get; } else { _get = function _get(target, property, receiver) { var base = _superPropBase(target, property); if (!base) return; var desc = Object.getOwnPropertyDescriptor(base, property); if (desc.get) { return desc.get.call(receiver); } return desc.value; }; } return _get(target, property, receiver || target); }
+
+function _superPropBase(object, property) { while (!Object.prototype.hasOwnProperty.call(object, property)) { object = _getPrototypeOf(object); if (object === null) break; } return object; }
+
+function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, writable: true, configurable: true } }); if (superClass) _setPrototypeOf(subClass, superClass); }
+
+function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
+
+function _createSuper(Derived) { var hasNativeReflectConstruct = _isNativeReflectConstruct(); return function _createSuperInternal() { var Super = _getPrototypeOf(Derived), result; if (hasNativeReflectConstruct) { var NewTarget = _getPrototypeOf(this).constructor; result = Reflect.construct(Super, arguments, NewTarget); } else { result = Super.apply(this, arguments); } return _possibleConstructorReturn(this, result); }; }
+
+function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
+
+function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
+
+function _isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Reflect.construct) return false; if (Reflect.construct.sham) return false; if (typeof Proxy === "function") return true; try { Date.prototype.toString.call(Reflect.construct(Date, [], function () {})); return true; } catch (e) { return false; } }
+
+function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
+
+var CYAN = "#00FFFF";
+
+var Armament = /*#__PURE__*/function (_body$CircularBody) {
+  _inherits(Armament, _body$CircularBody);
+
+  var _super = _createSuper(Armament);
+
+  function Armament(universe, parent, bind_pos, faction) {
+    var _this;
+
+    _classCallCheck(this, Armament);
+
+    var pos = parent.pos.clone();
+    pos.add(bind_pos);
+    _this = _super.call(this, universe, pos, faction, 10);
+    _this.parent = parent;
+    _this.bind_pos = bind_pos;
+    _this.hp = 100;
+    _this.rot = 0; // changed by children
+
+    _this.rot_speed = 0; // set rotation boundaries by finding angle of line
+
+    return _this;
+  }
+
+  _createClass(Armament, [{
+    key: "process",
+    value: function process(dt, t) {
+      // stay bound
+      this.pos = this.parent.pos.clone().add(this.bind_pos);
+    }
+  }]);
+
+  return Armament;
+}(_body["default"].CircularBody);
+
+var DualLaser = /*#__PURE__*/function (_Armament) {
+  _inherits(DualLaser, _Armament);
+
+  var _super2 = _createSuper(DualLaser);
+
+  function DualLaser(universe, parent, bind_pos, faction) {
+    var _this2;
+
+    _classCallCheck(this, DualLaser);
+
+    _this2 = _super2.call(this, universe, parent, bind_pos, faction);
+    _this2.rot_speed = Math.PI * 2;
+    _this2.shot_delay = 0.3;
+    _this2.laser_color = CYAN;
+    _this2.laser_speed_boost = 500;
+    _this2.barrel_length = _this2.radius * 2;
+    return _this2;
+  }
+
+  _createClass(DualLaser, [{
+    key: "draw",
+    value: function draw(context) {
+      _get(_getPrototypeOf(DualLaser.prototype), "draw", this).call(this, context); // draw gun barrels
+      // TODO: draw two of them
+
+
+      var end = this.pos.clone().add((0, _vector["default"])(this.barrel_length, 0).rotate(this.rot));
+      this.universe.draw_line(context, this.faction, this.pos, end, 3);
+    }
+  }]);
+
+  return DualLaser;
+}(Armament);
+
+var _default = {
+  DualLaser: DualLaser
+};
+exports["default"] = _default;
+
+},{"./body.js":3,"./projectile.js":6,"./vector.js":10}],3:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports["default"] = void 0;
+
 var _vector = _interopRequireDefault(require("./vector.js"));
 
 var _rectangle = _interopRequireDefault(require("./rectangle.js"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
+
+function _createForOfIteratorHelper(o, allowArrayLike) { var it; if (typeof Symbol === "undefined" || o[Symbol.iterator] == null) { if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e) { throw _e; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var normalCompletion = true, didErr = false, err; return { s: function s() { it = o[Symbol.iterator](); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e2) { didErr = true; err = _e2; }, f: function f() { try { if (!normalCompletion && it["return"] != null) it["return"](); } finally { if (didErr) throw err; } } }; }
+
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
+
+function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
 
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
@@ -1360,6 +1483,7 @@ function _defineProperties(target, props) { for (var i = 0; i < props.length; i+
 
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
+//var greinerHormann = require('greiner-hormann')
 var ORANGE = "#FFA600";
 
 var Body = /*#__PURE__*/function () {
@@ -1498,6 +1622,30 @@ var PolygonalBody = /*#__PURE__*/function (_Body2) {
       var w = xmax - xmin;
       var h = ymax - ymin;
       return new _rectangle["default"](xmin, ymin, w, h);
+    }
+  }, {
+    key: "get_global_side_vectors",
+    value: function get_global_side_vectors() {
+      var vectors = [];
+      var last = null;
+
+      var _iterator = _createForOfIteratorHelper(this.get_global_points()),
+          _step;
+
+      try {
+        for (_iterator.s(); !(_step = _iterator.n()).done;) {
+          var p = _step.value;
+
+          if (last == null) {
+            last = p;
+            continue;
+          }
+        }
+      } catch (err) {
+        _iterator.e(err);
+      } finally {
+        _iterator.f();
+      }
     }
   }, {
     key: "radius_collision",
@@ -1804,13 +1952,12 @@ var AIFighter = /*#__PURE__*/function (_Fighter2) {
 }(Fighter);
 
 var _default = {
-  PlayerFighter: PlayerFighter,
-  AIFighter: AIFighter,
+  PolygonalBody: PolygonalBody,
   CircularBody: CircularBody
 };
 exports["default"] = _default;
 
-},{"./rectangle.js":5,"./vector.js":7}],3:[function(require,module,exports){
+},{"./rectangle.js":7,"./vector.js":10}],4:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1924,14 +2071,14 @@ var Controller = /*#__PURE__*/function () {
 var _default = Controller;
 exports["default"] = _default;
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 "use strict";
 
 var _universe = _interopRequireDefault(require("./universe.js"));
 
 var _controller = _interopRequireDefault(require("./controller.js"));
 
-var _body = _interopRequireDefault(require("./body.js"));
+var _ship = _interopRequireDefault(require("./ship.js"));
 
 var _vector = _interopRequireDefault(require("./vector.js"));
 
@@ -1943,8 +2090,9 @@ function _defineProperties(target, props) { for (var i = 0; i < props.length; i+
 
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
-var PlayerFighter = _body["default"].PlayerFighter;
-var AIFighter = _body["default"].AIFighter;
+var AIFighter = _ship["default"].AIFighter;
+var PlayerFighter = _ship["default"].PlayerFighter;
+var Corvette = _ship["default"].Corvette;
 var CYAN = "#00FFFF";
 var RED = "#FF0000";
 var GREEN = "#00FF00";
@@ -1974,13 +2122,15 @@ var Game = /*#__PURE__*/function () {
       "shields": 0
     };
     var p = new PlayerFighter(this.universe, this.controller, (0, _vector["default"])(100, 0), e, WHITE);
-    this.universe.focus = p;
-    new AIFighter(this.universe, (0, _vector["default"])(-500, 500 * 5), e, RED);
-    new AIFighter(this.universe, (0, _vector["default"])(-1000, 500 * 5), e, RED);
-    new AIFighter(this.universe, (0, _vector["default"])(-1500, 500 * 5), e, RED);
-    new AIFighter(this.universe, (0, _vector["default"])(-5000, 500 * 5), e, RED);
-    new AIFighter(this.universe, (0, _vector["default"])(-10000, 500 * 5), e, RED);
-    new AIFighter(this.universe, (0, _vector["default"])(-15000, 500 * 5), e, RED);
+    this.universe.focus = p; // new AIFighter(this.universe, vec(-500, 500 * 5), e, RED)
+    // new AIFighter(this.universe, vec(-1000, 500 * 5), e, RED)
+    // new AIFighter(this.universe, vec(-1500, 500 * 5), e, RED)
+    // new AIFighter(this.universe, vec(-5000, 500 * 5), e, RED)
+    // new AIFighter(this.universe, vec(-10000, 500 * 5), e, RED)
+    // new AIFighter(this.universe, vec(-15000, 500 * 5), e, RED)
+
+    new Corvette(this.universe, (0, _vector["default"])(100, -100), GREEN);
+    new Corvette(this.universe, (0, _vector["default"])(300, -100), GREEN);
   }
 
   _createClass(Game, [{
@@ -2037,7 +2187,136 @@ window.onload = function () {
   });
 };
 
-},{"./body.js":2,"./controller.js":3,"./universe.js":6,"./vector.js":7}],5:[function(require,module,exports){
+},{"./controller.js":4,"./ship.js":8,"./universe.js":9,"./vector.js":10}],6:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports["default"] = void 0;
+
+var _body = _interopRequireDefault(require("./body.js"));
+
+var _vector = _interopRequireDefault(require("./vector.js"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
+
+function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, writable: true, configurable: true } }); if (superClass) _setPrototypeOf(subClass, superClass); }
+
+function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
+
+function _createSuper(Derived) { var hasNativeReflectConstruct = _isNativeReflectConstruct(); return function _createSuperInternal() { var Super = _getPrototypeOf(Derived), result; if (hasNativeReflectConstruct) { var NewTarget = _getPrototypeOf(this).constructor; result = Reflect.construct(Super, arguments, NewTarget); } else { result = Super.apply(this, arguments); } return _possibleConstructorReturn(this, result); }; }
+
+function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
+
+function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
+
+function _isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Reflect.construct) return false; if (Reflect.construct.sham) return false; if (typeof Proxy === "function") return true; try { Date.prototype.toString.call(Reflect.construct(Date, [], function () {})); return true; } catch (e) { return false; } }
+
+function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
+
+var ORANGE = "#FFA600";
+
+var Laser = /*#__PURE__*/function (_body$CircularBody) {
+  _inherits(Laser, _body$CircularBody);
+
+  var _super = _createSuper(Laser);
+
+  function Laser(universe, parent, pos, color, radius) {
+    var _this;
+
+    _classCallCheck(this, Laser);
+
+    _this = _super.call(this, universe, pos, color, radius);
+    _this.parent = parent;
+    _this.length = 15 * _this.radius;
+    _this.exploding = false;
+    _this.exploding_start = null;
+    _this.explosion_life = 0.2;
+    _this.full_life_length = 1.5;
+    _this.first_position = null;
+    return _this;
+  }
+
+  _createClass(Laser, [{
+    key: "process",
+    value: function process(dt, t) {
+      var _this2 = this;
+
+      if (dt == this.lifetime) {
+        this.first_position = this.pos.clone();
+      }
+
+      if (this.exploding && t - this.exploding_start > this.explosion_life) {
+        return true;
+      }
+
+      if (this.lifetime > dt) {
+        this.universe.get_nearby_bodies(this).forEach(function (body) {
+          if (typeof body.hp !== 'undefined' && body.get_aabb_rect().collide_point(_this2.pos) && body != _this2.parent) {
+            if (body.radius_collision(_this2.pos)) {
+              _this2.exploding = true;
+              _this2.exploding_start = t;
+
+              _this2.vel.rotate(Math.random() * Math.PI * 0.25);
+
+              _this2.full_life_length = _this2.lifetime + 0.5;
+              body.hp -= 10;
+              _this2.color = ORANGE;
+              _this2.parent = body;
+            }
+          }
+        });
+
+        if (this.lifetime >= this.full_life_length) {
+          return true;
+        }
+      }
+    }
+  }, {
+    key: "draw",
+    value: function draw(context) {
+      if (this.exploding) {
+        this.universe.draw_circle(context, this.color, this.pos, this.radius * 3);
+      } else {
+        this.universe.draw_circle(context, this.color, this.pos, this.radius); // draw streak
+
+        var streak_end = this.vel.clone().norm().invert().scaled(this.length).add(this.pos);
+        var lerp_amount = 0.3;
+
+        if (this.first_position != null) {
+          for (var i = 0; i < this.length; ++i) {
+            var streak_to_original = this.first_position.clone().subtract(streak_end).norm();
+            var pos_to_original = this.first_position.clone().subtract(this.pos).norm();
+
+            if (streak_to_original.dot(pos_to_original) == 1 || this.lifetime > this.length / this.vel.length()) {
+              this.universe.draw_circle(context, this.color, streak_end, this.radius);
+            }
+
+            streak_end.mix(this.pos, lerp_amount);
+          }
+        }
+      }
+    }
+  }]);
+
+  return Laser;
+}(_body["default"].CircularBody);
+
+var _default = {
+  Laser: Laser
+};
+exports["default"] = _default;
+
+},{"./body.js":3,"./vector.js":10}],7:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2189,7 +2468,337 @@ var Rect = /*#__PURE__*/function () {
 var _default = Rect;
 exports["default"] = _default;
 
-},{}],6:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports["default"] = void 0;
+
+var _body = _interopRequireDefault(require("./body.js"));
+
+var _vector = _interopRequireDefault(require("./vector.js"));
+
+var _projectile = _interopRequireDefault(require("./projectile.js"));
+
+var _armaments = _interopRequireDefault(require("./armaments.js"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
+
+function _createForOfIteratorHelper(o, allowArrayLike) { var it; if (typeof Symbol === "undefined" || o[Symbol.iterator] == null) { if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e) { throw _e; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var normalCompletion = true, didErr = false, err; return { s: function s() { it = o[Symbol.iterator](); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e2) { didErr = true; err = _e2; }, f: function f() { try { if (!normalCompletion && it["return"] != null) it["return"](); } finally { if (didErr) throw err; } } }; }
+
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
+
+function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
+
+function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, writable: true, configurable: true } }); if (superClass) _setPrototypeOf(subClass, superClass); }
+
+function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
+
+function _createSuper(Derived) { var hasNativeReflectConstruct = _isNativeReflectConstruct(); return function _createSuperInternal() { var Super = _getPrototypeOf(Derived), result; if (hasNativeReflectConstruct) { var NewTarget = _getPrototypeOf(this).constructor; result = Reflect.construct(Super, arguments, NewTarget); } else { result = Super.apply(this, arguments); } return _possibleConstructorReturn(this, result); }; }
+
+function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
+
+function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
+
+function _isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Reflect.construct) return false; if (Reflect.construct.sham) return false; if (typeof Proxy === "function") return true; try { Date.prototype.toString.call(Reflect.construct(Date, [], function () {})); return true; } catch (e) { return false; } }
+
+function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
+
+var DualLaser = _armaments["default"].DualLaser;
+var Laser = _projectile["default"].Laser; // TODO: write colors module
+
+var ORANGE = "#FFA600";
+
+var Fighter = /*#__PURE__*/function (_body$PolygonalBody) {
+  _inherits(Fighter, _body$PolygonalBody);
+
+  var _super = _createSuper(Fighter);
+
+  function Fighter(universe, pos, equipment, faction) {
+    var _this;
+
+    _classCallCheck(this, Fighter);
+
+    var points = [(0, _vector["default"])(0, 15), (0, _vector["default"])(12, -15), (0, _vector["default"])(0, -10), (0, _vector["default"])(-12, -15)];
+    _this = _super.call(this, universe, pos, points, faction);
+    _this.faction = faction;
+    _this.equipment = equipment; // attributes to be changed when ship is equiped
+
+    _this.rot_speed = 0;
+    _this.fly_speed = 0;
+    _this.acceleration = 0;
+    _this.last_laser_shot = -100;
+    _this.shot_delay = 0;
+    _this.shot_spread = 0;
+    _this.laser_color = "#00FFFF";
+    _this.hp = 0;
+    _this.shields = 0;
+
+    _this.equip();
+
+    return _this;
+  }
+
+  _createClass(Fighter, [{
+    key: "equip",
+    value: function equip() {
+      this.rot_speed = this.equipment["rot speed"];
+      this.fly_speed = this.equipment["fly speed"];
+      this.acceleration = this.equipment["acceleration"];
+      this.dec = this.equipment["dec"];
+      this.shot_delay = this.equipment["shot delay"];
+      this.shot_spread = Math.round(this.equipment["shot spread"] * 0.5);
+      this.laser_color = this.equipment["laser color"];
+      this.hp = this.equipment["hp"];
+      this.shields = this.equipment["shields"];
+    }
+  }, {
+    key: "fire_laser",
+    value: function fire_laser(t) {
+      if (t - this.last_laser_shot > this.shot_delay) {
+        this.last_laser_shot = t;
+        var l = new Laser(this.universe, this, this.get_global_points()[0], this.laser_color, 3);
+        l.vel = (0, _vector["default"])(0, this.vel.length() + 500).invert().rotate(this.rot); // TODO: add spread
+      }
+    }
+  }, {
+    key: "handle_death",
+    value: function handle_death(dt, t) {
+      if (this.health <= 0) {
+        this.health = 0;
+        this.color = ORANGE;
+        return true; // is dead
+      }
+
+      return false; // is alive
+    }
+  }]);
+
+  return Fighter;
+}(_body["default"].PolygonalBody);
+
+var PlayerFighter = /*#__PURE__*/function (_Fighter) {
+  _inherits(PlayerFighter, _Fighter);
+
+  var _super2 = _createSuper(PlayerFighter);
+
+  function PlayerFighter(universe, controller, pos, equipment, faction) {
+    var _this2;
+
+    _classCallCheck(this, PlayerFighter);
+
+    _this2 = _super2.call(this, universe, pos, equipment, faction);
+    _this2.controller = controller;
+    return _this2;
+  }
+
+  _createClass(PlayerFighter, [{
+    key: "process",
+    value: function process(dt, t) {
+      // if dead, don't do anything else
+      if (this.hp <= 0) {
+        this.hp = 0;
+        this.color = "#FFa500";
+        this.vel.mix((0, _vector["default"])(0, 0), this.dec * dt);
+        return false; // do not kill self
+      } // handle turning
+
+
+      if (this.controller.pressed(this.controller.left)) {
+        this.rot -= this.rot_speed * dt;
+      } else if (this.controller.pressed(this.controller.right)) {
+        this.rot += this.rot_speed * dt;
+      } // handle thrust
+
+
+      if (this.controller.pressed(this.controller.up)) {
+        this.vel.subtract((0, _vector["default"])(0, this.acceleration).rotate(this.rot).scaled(dt));
+        this.actively_moving = true;
+      } else {
+        this.actively_moving = false;
+      }
+
+      if (this.vel.length() > this.fly_speed) this.vel = this.vel.clone().norm().scaled(this.fly_speed); // handle space bar press for fire
+
+      if (this.controller.pressed(this.controller.fire)) {
+        this.fire_laser(t);
+      }
+    }
+  }]);
+
+  return PlayerFighter;
+}(Fighter);
+
+var AIFighter = /*#__PURE__*/function (_Fighter2) {
+  _inherits(AIFighter, _Fighter2);
+
+  var _super3 = _createSuper(AIFighter);
+
+  function AIFighter(universe, pos, equipment, faction) {
+    var _this3;
+
+    _classCallCheck(this, AIFighter);
+
+    _this3 = _super3.call(this, universe, pos, equipment, faction);
+    _this3.target = null;
+    return _this3;
+  }
+
+  _createClass(AIFighter, [{
+    key: "process",
+    value: function process(dt, t) {
+      var _this4 = this;
+
+      if (this.hp <= 0) {
+        this.hp = 0;
+        this.color = "#FFa500";
+        this.vel.mix((0, _vector["default"])(0, 0), this.dec * dt);
+        return false; // do not kill self
+      }
+
+      var closest = null;
+      var closest_distance = 10000000;
+      this.universe.bodies.forEach(function (body) {
+        if (closest === null) {
+          closest = body;
+        }
+
+        var need_continue = false;
+        if (!(body instanceof Fighter)) need_continue = true;else if (body.faction === _this4.faction || body.hp <= 0) need_continue = true;
+
+        if (!need_continue) {
+          var distance_sq = _this4.pos.distanceSq(body.pos);
+
+          if (distance_sq < closest_distance) {
+            closest_distance = distance_sq;
+            closest = body;
+          }
+        }
+      });
+      this.target = closest;
+      if (this.rot < 0) this.rot += 360;else if (this.rot > 360) this.rot %= 360;
+      var time = this.target.pos.distance(this.pos) / (this.vel.length() + 500);
+      var projection = this.target.pos.clone().add(this.target.vel.scaled(time));
+      var desired_angle = (0, _vector["default"])(0, 1).angle() + projection.subtract(this.pos).angle();
+      var desired_rotation = desired_angle - this.rot;
+      if (desired_rotation < 0) desired_rotation += 2 * Math.PI;else if (desired_rotation > 2 * Math.PI) desired_rotation -= 2 * Math.PI; // rotate as much as possible (TODO: fix this)
+
+      var max_rotation_amount = this.rot_speed * dt;
+
+      if (max_rotation_amount > desired_rotation) {
+        this.rot += desired_rotation;
+      } else {
+        this.rot += max_rotation_amount;
+      }
+
+      if (desired_rotation < 30 && this.target.hp > 0 && this.faction != this.target.faction) {
+        this.fire_laser(t);
+      }
+
+      if (this.pos.distance(this.target.pos) > 50 && desired_rotation < 10) {
+        this.vel.subtract((0, _vector["default"])(0, this.acceleration).rotate(this.rot).scaled(dt));
+      } else {
+        this.vel.mix((0, _vector["default"])(0, 0), this.dec * dt);
+      }
+
+      if (this.vel.length() > this.fly_speed) {
+        this.vel.normalize().scale_ip(this.fly_speed);
+      }
+    }
+  }]);
+
+  return AIFighter;
+}(Fighter);
+
+var CapitalShip = /*#__PURE__*/function (_body$PolygonalBody2) {
+  _inherits(CapitalShip, _body$PolygonalBody2);
+
+  var _super4 = _createSuper(CapitalShip);
+
+  function CapitalShip(universe, pos, points, engine_bind_points, armament_template, faction) {
+    var _this5;
+
+    _classCallCheck(this, CapitalShip);
+
+    _this5 = _super4.call(this, universe, pos, points, faction);
+    _this5.faction = faction;
+    _this5.engine_bind_points = engine_bind_points;
+    _this5.armaments = [];
+
+    var _iterator = _createForOfIteratorHelper(armament_template),
+        _step;
+
+    try {
+      for (_iterator.s(); !(_step = _iterator.n()).done;) {
+        var armament_data = _step.value;
+        var arm = new armament_data[1](_this5.universe, _assertThisInitialized(_this5), armament_data[0], _this5.faction);
+
+        _this5.armaments.push(arm);
+
+        console.log(typeof bind_pos === "undefined" ? "undefined" : _typeof(bind_pos));
+      }
+    } catch (err) {
+      _iterator.e(err);
+    } finally {
+      _iterator.f();
+    }
+
+    return _this5;
+  }
+
+  _createClass(CapitalShip, [{
+    key: "equip",
+    value: function equip() {
+      this.rot_speed = this.equipment["rot speed"];
+      this.fly_speed = this.equipment["fly speed"];
+      this.acceleration = this.equipment["acceleration"];
+      this.dec = this.equipment["dec"];
+      this.shot_delay = this.equipment["shot delay"];
+      this.shot_spread = Math.round(this.equipment["shot spread"] * 0.5);
+      this.laser_color = this.equipment["laser color"];
+      this.hp = this.equipment["hp"];
+      this.shields = this.equipment["shields"];
+    }
+  }]);
+
+  return CapitalShip;
+}(_body["default"].PolygonalBody);
+
+var Corvette = /*#__PURE__*/function (_CapitalShip) {
+  _inherits(Corvette, _CapitalShip);
+
+  var _super5 = _createSuper(Corvette);
+
+  function Corvette(universe, pos, faction) {
+    _classCallCheck(this, Corvette);
+
+    var points = [(0, _vector["default"])(0, -75), (0, _vector["default"])(-15, -45), (0, _vector["default"])(-15, 45), (0, _vector["default"])(15, 45), (0, _vector["default"])(15, -45)];
+    var engine_points = [(0, _vector["default"])(60, -15), (0, _vector["default"])(60, 15)];
+    var armaments = [[(0, _vector["default"])(-15, 0), DualLaser.prototype.constructor], [(0, _vector["default"])(15, 0), DualLaser.prototype.constructor], [(0, _vector["default"])(-15, 30), DualLaser.prototype.constructor], [(0, _vector["default"])(15, 30), DualLaser.prototype.constructor], [(0, _vector["default"])(-15, -30), DualLaser.prototype.constructor], [(0, _vector["default"])(15, -30), DualLaser.prototype.constructor]];
+    return _super5.call(this, universe, pos, points, engine_points, armaments, faction);
+  }
+
+  return Corvette;
+}(CapitalShip);
+
+var _default = {
+  PlayerFighter: PlayerFighter,
+  AIFighter: AIFighter,
+  Corvette: Corvette
+};
+exports["default"] = _default;
+
+},{"./armaments.js":2,"./body.js":3,"./projectile.js":6,"./vector.js":10}],9:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2380,6 +2989,19 @@ var Universe = /*#__PURE__*/function () {
       if (fill) context.fill();else context.stroke();
     }
   }, {
+    key: "draw_line",
+    value: function draw_line(context, color, start, end, width) {
+      var parallax = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : 1;
+      context.strokeStyle = color;
+      context.lineWidth = width;
+      context.beginPath();
+      var start_render = this.get_render_point(start, parallax);
+      var end_render = this.get_render_point(end, parallax);
+      context.moveTo(start_render.x, start_render.y);
+      context.lineTo(end_render.x, end_render.y);
+      context.stroke();
+    }
+  }, {
     key: "get_render_point",
     value: function get_render_point(point) {
       var parallax = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 1;
@@ -2393,7 +3015,7 @@ var Universe = /*#__PURE__*/function () {
 var _default = Universe;
 exports["default"] = _default;
 
-},{"./body.js":2,"./vector.js":7}],7:[function(require,module,exports){
+},{"./body.js":3,"./vector.js":10}],10:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2423,4 +3045,4 @@ function vec(x, y) {
 var _default = vec;
 exports["default"] = _default;
 
-},{"victor":1}]},{},[4]);
+},{"victor":1}]},{},[5]);

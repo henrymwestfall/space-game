@@ -47,6 +47,8 @@ class Game {
         // new AIFighter(this.universe, vec(-15000, 500 * 5), e, RED)
 
         new Corvette(this.universe, vec(100, -100), GREEN)
+        new Corvette(this.universe, vec(300, -100), GREEN)
+
     }
 
     runNextFrame() {
