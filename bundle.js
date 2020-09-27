@@ -1770,7 +1770,9 @@ var AIFighter = /*#__PURE__*/function (_Fighter2) {
       });
       this.target = closest;
       if (this.rot < 0) this.rot += 360;else if (this.rot > 360) this.rot %= 360;
-      var desired_angle = (0, _vector["default"])(0, 1).angle() + this.target.pos.clone().subtract(this.pos).angle();
+      var time = this.target.pos.distance(this.pos) / (this.vel.length() + 500);
+      var projection = this.target.pos.clone().add(this.target.vel.scaled(time));
+      var desired_angle = (0, _vector["default"])(0, 1).angle() + projection.subtract(this.pos).angle();
       var desired_rotation = desired_angle - this.rot;
       if (desired_rotation < 0) desired_rotation += 2 * Math.PI;else if (desired_rotation > 2 * Math.PI) desired_rotation -= 2 * Math.PI; // rotate as much as possible (TODO: fix this)
 

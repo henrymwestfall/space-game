@@ -328,7 +328,10 @@ class AIFighter extends Fighter {
         if (this.rot < 0) this.rot += 360
         else if (this.rot > 360) this.rot %= 360
 
-        let desired_angle = vec(0, 1).angle() + this.target.pos.clone().subtract(this.pos).angle()
+        let time = this.target.pos.distance(this.pos) / (this.vel.length() + 500)
+        let projection = this.target.pos.clone().add(this.target.vel.scaled(time))
+
+        let desired_angle = vec(0, 1).angle() + projection.subtract(this.pos).angle()
         let desired_rotation = desired_angle - this.rot
 
         if (desired_rotation < 0) desired_rotation += 2 * Math.PI
