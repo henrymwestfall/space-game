@@ -133,7 +133,7 @@ class Laser extends CircularBody {
         this.exploding_start = null
         this.explosion_life = 0.2
 
-        this.full_life_length = 10
+        this.full_life_length = 1.5
 
         this.first_position = null
     }

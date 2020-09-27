@@ -1532,7 +1532,7 @@ var Laser = /*#__PURE__*/function (_CircularBody) {
     _this4.exploding = false;
     _this4.exploding_start = null;
     _this4.explosion_life = 0.2;
-    _this4.full_life_length = 10;
+    _this4.full_life_length = 1.5;
     _this4.first_position = null;
     return _this4;
   }
@@ -1972,9 +1972,13 @@ var Game = /*#__PURE__*/function () {
       "shields": 0
     };
     var p = new PlayerFighter(this.universe, this.controller, (0, _vector["default"])(100, 0), e, WHITE);
-    this.universe.focus = p; // new AIFighter(this.universe, vec(-500, 500 * 5), e, RED)
-    // new AIFighter(this.universe, vec(-1000, 500 * 5), e, RED)
-    // new AIFighter(this.universe, vec(-1500, 500 * 5), e, RED)
+    this.universe.focus = p;
+    new AIFighter(this.universe, (0, _vector["default"])(-500, 500 * 5), e, RED);
+    new AIFighter(this.universe, (0, _vector["default"])(-1000, 500 * 5), e, RED);
+    new AIFighter(this.universe, (0, _vector["default"])(-1500, 500 * 5), e, RED);
+    new AIFighter(this.universe, (0, _vector["default"])(-5000, 500 * 5), e, RED);
+    new AIFighter(this.universe, (0, _vector["default"])(-10000, 500 * 5), e, RED);
+    new AIFighter(this.universe, (0, _vector["default"])(-15000, 500 * 5), e, RED);
   }
 
   _createClass(Game, [{
@@ -2209,7 +2213,7 @@ var Universe = /*#__PURE__*/function () {
     this.camera = (0, _vector["default"])(0, 0);
     this.focus = null;
     this.chunks = {};
-    this.chunk_size = 1000;
+    this.chunk_size = 500;
     this.background = [];
 
     for (var i = 0; i < 2500; ++i) {

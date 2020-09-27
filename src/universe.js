@@ -12,7 +12,7 @@ class Universe {
         this.focus = null
 
         this.chunks = {}
-        this.chunk_size = 1000
+        this.chunk_size = 500
 
         this.background = []
         for (let i=0; i<2500; ++i) {
