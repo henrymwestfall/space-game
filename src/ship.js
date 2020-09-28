@@ -22,6 +22,8 @@ class Fighter extends body.PolygonalBody {
         this.faction = faction
         this.equipment = equipment
 
+        this.mass = 1
+
         // attributes to be changed when ship is equiped
         this.rot_speed = 0
         this.fly_speed = 0
@@ -76,6 +78,8 @@ class PlayerFighter extends Fighter {
     }
 
     process(dt, t) {
+        super.process(dt, t)
+
         // if dead, don't do anything else
         if (this.hp <= 0) {
             this.hp = 0
@@ -116,6 +120,8 @@ class AIFighter extends Fighter {
     }
 
     process(dt, t) {
+        super.process(dt, t)
+
         if (this.hp <= 0) {
             this.hp = 0
             this.color = "#FFa500"
@@ -204,6 +210,16 @@ class CapitalShip extends body.PolygonalBody {
         this.hp = this.equipment["hp"]
         this.shields = this.equipment["shields"]
     }
+
+    process(dt, t) {
+        super.process(dt, t)
+        if (this.hp <= 0) {
+            this.hp = 0
+            this.color = "#FFa500"
+            this.vel.mix(vec(0, 0), this.dec * dt)
+            return false // do not kill self
+        }
+    }
 }
 
 class Corvette extends CapitalShip {
@@ -229,6 +245,7 @@ class Corvette extends CapitalShip {
         ]
         
         super(universe, pos, points, engine_points, armaments, faction)
+        this.mass = 30
     }
 }
 

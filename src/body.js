@@ -1,7 +1,7 @@
 import vec from "./vector.js"
 import Rect from "./rectangle.js"
 
-//var greinerHormann = require('greiner-hormann')
+var greiner_hormann = require('greiner-hormann')
 
 const ORANGE = "#FFA600"
 
@@ -15,6 +15,7 @@ class Body {
         this.pos = pos
         this.vel = vec(0, 0)
         this.rot = 0
+        this.mass = 0
 
         this.chunk = ""
 
@@ -112,6 +113,7 @@ class PolygonalBody extends Body {
     }
 
     get_global_side_vectors() {
+        // TODO: finish
         let vectors = []
         let last = null
         for (let p of this.get_global_points()) {
@@ -119,12 +121,49 @@ class PolygonalBody extends Body {
                 last = p
                 continue
             }
+
+
         }
+    }
+
+    polygon_collision(points) {
+        return greiner_hormann.intersection(this.get_global_points(), points)
     }
 
     radius_collision(point) {
         let distance = this.pos.clone().subtract(this.centroid(this.points)).distance(point)
         return distance <= this.approx_radius
+    }
+
+    apply_force_at_point(force, point) {
+        // TODO: change rotational speed
+        this.vel.add(force.scaled(1 / this.mass))
+    }
+
+    process(dt, t) {
+        let nearby_bodies = this.universe.get_nearby_bodies(this)
+        for (let body of nearby_bodies) {
+            if (body == this) continue
+            if (typeof body.get_global_points == "undefined") continue
+            let collision_points = this.polygon_collision(body.get_global_points())
+            if (collision_points == null) continue
+            console.log("smash")
+            for (let p of collision_points) {
+                let their_momentum = body.vel.scaled(body.mass) // v * m
+                let my_momentum = this.vel.scaled(this.mass) // v * m
+                
+                // snap to collision point
+                
+
+                // apply momentum
+                let total_mass = body.mass + this.mass
+                let total_momentum = their_momentum.add(my_momentum)
+                this.vel = total_momentum.scaled(1 / total_mass)
+                body.vel = total_momentum.scaled(1 / total_mass)
+
+                
+            }
+        }
     }
 
     draw(context) {
