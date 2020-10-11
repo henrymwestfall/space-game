@@ -22,7 +22,7 @@ class Fighter extends body.PolygonalBody {
         this.faction = faction
         this.equipment = equipment
 
-        this.mass = 1
+        this.type = "fighter"
 
         // attributes to be changed when ship is equiped
         this.rot_speed = 0
@@ -67,6 +67,10 @@ class Fighter extends body.PolygonalBody {
             return true // is dead
         }
         return false // is alive
+    }
+
+    contains(body) {
+        return body == this
     }
 }
 
@@ -245,7 +249,6 @@ class Corvette extends CapitalShip {
         ]
         
         super(universe, pos, points, engine_points, armaments, faction)
-        this.mass = 30
     }
 }
 

@@ -15,7 +15,7 @@ class Body {
         this.pos = pos
         this.vel = vec(0, 0)
         this.rot = 0
-        this.mass = 0
+        this.z_index = 0
 
         this.chunk = ""
 
@@ -56,6 +56,11 @@ class CircularBody extends Body {
         let rect = new Rect(0, 0, d, d)
         rect.set_center(this.pos.x, this.pos.y)
         return rect
+    }
+
+    radius_collision(point) {
+        let distance = this.pos.distance(point)
+        return distance <= this.approx_radius
     }
 
     draw(context) {
@@ -140,30 +145,20 @@ class PolygonalBody extends Body {
         this.vel.add(force.scaled(1 / this.mass))
     }
 
-    process(dt, t) {
-        let nearby_bodies = this.universe.get_nearby_bodies(this)
-        for (let body of nearby_bodies) {
-            if (body == this) continue
-            if (typeof body.get_global_points == "undefined") continue
-            let collision_points = this.polygon_collision(body.get_global_points())
-            if (collision_points == null) continue
-            console.log("smash")
-            for (let p of collision_points) {
-                let their_momentum = body.vel.scaled(body.mass) // v * m
-                let my_momentum = this.vel.scaled(this.mass) // v * m
-                
-                // snap to collision point
-                
-
-                // apply momentum
-                let total_mass = body.mass + this.mass
-                let total_momentum = their_momentum.add(my_momentum)
-                this.vel = total_momentum.scaled(1 / total_mass)
-                body.vel = total_momentum.scaled(1 / total_mass)
-
-                
+    snap_to_collision(body, num_increments=100) {
+        let my_increment_vec = this.vel.scaled(1 / num_increments).invert()
+        let their_increment_vec = body.vel.scaled(1 / num_increments).invert()
+        for (let i=0; i<num_increments; ++i) {
+            this.pos.add(my_increment_vec)
+            body.pos.add(their_increment_vec)
+            if (this.polygon_collision(body.get_global_points()) == null) {
+                break
             }
         }
+    }
+
+    process(dt, t) {
+
     }
 
     draw(context) {

@@ -30,7 +30,7 @@ class Laser extends body.CircularBody {
 
         if (this.lifetime > dt) {
             this.universe.get_nearby_bodies(this).forEach(body => {
-                if ((typeof body.hp !== 'undefined') && body.get_aabb_rect().collide_point(this.pos) && body != this.parent) {
+                if ((typeof body.hp !== 'undefined') && body.get_aabb_rect().collide_point(this.pos) && !this.parent.contains(body)) {
                     if (body.radius_collision(this.pos)) {
                         this.exploding = true
                         this.exploding_start = t

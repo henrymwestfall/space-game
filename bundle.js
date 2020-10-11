@@ -1901,6 +1901,7 @@ function _isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Re
 
 function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
 
+var Laser = _projectile["default"].Laser;
 var CYAN = "#00FFFF";
 
 var Armament = /*#__PURE__*/function (_body$CircularBody) {
@@ -1921,8 +1922,8 @@ var Armament = /*#__PURE__*/function (_body$CircularBody) {
     _this.hp = 100;
     _this.rot = 0; // changed by children
 
-    _this.rot_speed = 0; // set rotation boundaries by finding angle of line
-
+    _this.rot_speed = 0;
+    _this.target = null;
     return _this;
   }
 
@@ -1930,7 +1931,12 @@ var Armament = /*#__PURE__*/function (_body$CircularBody) {
     key: "process",
     value: function process(dt, t) {
       // stay bound
-      this.pos = this.parent.pos.clone().add(this.bind_pos);
+      this.pos = this.parent.pos.clone().add(this.bind_pos.clone().rotate(this.parent.rot));
+    }
+  }, {
+    key: "contains",
+    value: function contains(body) {
+      return body == this.parent || body == this || body in this.parent.armaments;
     }
   }]);
 
@@ -1948,11 +1954,15 @@ var DualLaser = /*#__PURE__*/function (_Armament) {
     _classCallCheck(this, DualLaser);
 
     _this2 = _super2.call(this, universe, parent, bind_pos, faction);
+    _this2.color = "#20BB20"; // TODO: vary by faction
+
     _this2.rot_speed = Math.PI * 2;
     _this2.shot_delay = 0.3;
     _this2.laser_color = CYAN;
     _this2.laser_speed_boost = 500;
-    _this2.barrel_length = _this2.radius * 2;
+    _this2.barrel_length = _this2.radius * 1.5;
+    _this2.last_laser_shot = 0;
+    _this2.shot_delay = 0.3;
     return _this2;
   }
 
@@ -1963,8 +1973,66 @@ var DualLaser = /*#__PURE__*/function (_Armament) {
       // TODO: draw two of them
 
 
-      var end = this.pos.clone().add((0, _vector["default"])(this.barrel_length, 0).rotate(this.rot));
-      this.universe.draw_line(context, this.faction, this.pos, end, 3);
+      var v = (0, _vector["default"])(this.radius * 0.25, 0).rotate(this.rot + Math.PI);
+      var p1 = this.pos.clone().add(v);
+      var p2 = this.pos.clone().subtract(v);
+      var end1 = p1.clone().add((0, _vector["default"])(this.barrel_length, 0).rotate(this.rot - Math.PI * 0.5));
+      var end2 = p2.clone().add((0, _vector["default"])(this.barrel_length, 0).rotate(this.rot - Math.PI * 0.5));
+      this.universe.draw_line(context, "#303030", p1, end1, 3);
+      this.universe.draw_line(context, "#303030", p2, end2, 3);
+    }
+  }, {
+    key: "process",
+    value: function process(dt, t) {
+      var _this3 = this;
+
+      _get(_getPrototypeOf(DualLaser.prototype), "process", this).call(this, dt, t);
+
+      var closest = null;
+      var closest_distance = 10000000;
+      this.universe.bodies.forEach(function (body) {
+        if (closest === null) {
+          closest = body;
+        }
+
+        var need_continue = false;
+        if (body.type != "fighter") need_continue = true;else if (body == _this3.parent || body.faction === _this3.parent.faction || body.hp <= 0) need_continue = true;
+
+        if (!need_continue) {
+          var distance_sq = _this3.pos.distanceSq(body.pos);
+
+          if (distance_sq < closest_distance) {
+            closest_distance = distance_sq;
+            closest = body;
+          }
+        }
+      });
+      this.target = closest;
+      if (this.rot < 0) this.rot += 360;else if (this.rot > 360) this.rot %= 360;
+      var time = this.target.pos.distance(this.pos) / (this.parent.vel.length() + 500);
+      var projection = this.target.pos.clone().add(this.target.vel.scaled(time));
+      var desired_angle = (0, _vector["default"])(0, 1).angle() + projection.subtract(this.pos).angle();
+      var desired_rotation = desired_angle - this.rot;
+      if (desired_rotation < 0) desired_rotation += 2 * Math.PI;else if (desired_rotation > 2 * Math.PI) desired_rotation -= 2 * Math.PI; // rotate as much as possible (TODO: fix this)
+
+      var max_rotation_amount = this.rot_speed * dt;
+
+      if (max_rotation_amount > desired_rotation) {
+        this.rot += desired_rotation;
+      } else {
+        this.rot += max_rotation_amount;
+      }
+
+      this.fire_laser(t);
+    }
+  }, {
+    key: "fire_laser",
+    value: function fire_laser(t) {
+      if (t - this.last_laser_shot > this.shot_delay) {
+        this.last_laser_shot = t;
+        var l = new Laser(this.universe, this, this.pos, this.laser_color, 3);
+        l.vel = (0, _vector["default"])(0, this.parent.vel.length() + 500).invert().rotate(this.rot); // TODO: add spread
+      }
     }
   }]);
 
@@ -2032,7 +2100,7 @@ var Body = /*#__PURE__*/function () {
     this.pos = pos;
     this.vel = (0, _vector["default"])(0, 0);
     this.rot = 0;
-    this.mass = 0;
+    this.z_index = 0;
     this.chunk = "";
     this.dec = 0;
     this.actively_moving = false;
@@ -2086,6 +2154,12 @@ var CircularBody = /*#__PURE__*/function (_Body) {
       var rect = new _rectangle["default"](0, 0, d, d);
       rect.set_center(this.pos.x, this.pos.y);
       return rect;
+    }
+  }, {
+    key: "radius_collision",
+    value: function radius_collision(point) {
+      var distance = this.pos.distance(point);
+      return distance <= this.approx_radius;
     }
   }, {
     key: "draw",
@@ -2203,49 +2277,24 @@ var PolygonalBody = /*#__PURE__*/function (_Body2) {
       this.vel.add(force.scaled(1 / this.mass));
     }
   }, {
-    key: "process",
-    value: function process(dt, t) {
-      var nearby_bodies = this.universe.get_nearby_bodies(this);
+    key: "snap_to_collision",
+    value: function snap_to_collision(body) {
+      var num_increments = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 100;
+      var my_increment_vec = this.vel.scaled(1 / num_increments).invert();
+      var their_increment_vec = body.vel.scaled(1 / num_increments).invert();
 
-      var _iterator2 = _createForOfIteratorHelper(nearby_bodies),
-          _step2;
+      for (var i = 0; i < num_increments; ++i) {
+        this.pos.add(my_increment_vec);
+        body.pos.add(their_increment_vec);
 
-      try {
-        for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
-          var body = _step2.value;
-          if (body == this) continue;
-          if (typeof body.get_global_points == "undefined") continue;
-          var collision_points = this.polygon_collision(body.get_global_points());
-          if (collision_points == null) continue;
-          console.log("smash");
-
-          var _iterator3 = _createForOfIteratorHelper(collision_points),
-              _step3;
-
-          try {
-            for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
-              var p = _step3.value;
-              var their_momentum = body.vel.scaled(body.mass); // v * m
-
-              var my_momentum = this.vel.scaled(this.mass); // v * m
-
-              var total_mass = body.mass + this.mass;
-              var total_momentum = their_momentum.add(my_momentum);
-              this.vel = total_momentum.scaled(1 / total_mass);
-              body.vel = total_momentum.scaled(1 / total_mass); //this.apply_force_at_point()
-            }
-          } catch (err) {
-            _iterator3.e(err);
-          } finally {
-            _iterator3.f();
-          }
+        if (this.polygon_collision(body.get_global_points()) == null) {
+          break;
         }
-      } catch (err) {
-        _iterator2.e(err);
-      } finally {
-        _iterator2.f();
       }
     }
+  }, {
+    key: "process",
+    value: function process(dt, t) {}
   }, {
     key: "draw",
     value: function draw(context) {
@@ -2714,16 +2763,16 @@ var Game = /*#__PURE__*/function () {
       "shot spread": 2,
       "shields": 0
     };
-    var p = new PlayerFighter(this.universe, this.controller, (0, _vector["default"])(100, 0), e, WHITE);
-    this.universe.focus = p; // new AIFighter(this.universe, vec(-500, 500 * 5), e, RED)
-    // new AIFighter(this.universe, vec(-1000, 500 * 5), e, RED)
-    // new AIFighter(this.universe, vec(-1500, 500 * 5), e, RED)
-    // new AIFighter(this.universe, vec(-5000, 500 * 5), e, RED)
-    // new AIFighter(this.universe, vec(-10000, 500 * 5), e, RED)
-    // new AIFighter(this.universe, vec(-15000, 500 * 5), e, RED)
-
-    new Corvette(this.universe, (0, _vector["default"])(100, -100), GREEN);
-    new Corvette(this.universe, (0, _vector["default"])(300, -100), GREEN);
+    var p = new PlayerFighter(this.universe, this.controller, (0, _vector["default"])(100, 0), e, GREEN);
+    this.universe.focus = p;
+    new AIFighter(this.universe, (0, _vector["default"])(-500, 500 * 5), e, RED);
+    new AIFighter(this.universe, (0, _vector["default"])(-1000, 500 * 5), e, RED);
+    new AIFighter(this.universe, (0, _vector["default"])(-1500, 500 * 5), e, RED);
+    new AIFighter(this.universe, (0, _vector["default"])(-5000, 500 * 5), e, RED);
+    new AIFighter(this.universe, (0, _vector["default"])(-10000, 500 * 5), e, RED);
+    new AIFighter(this.universe, (0, _vector["default"])(-15000, 500 * 5), e, RED);
+    new Corvette(this.universe, (0, _vector["default"])(100, -300), GREEN); //let c2 = new Corvette(this.universe, vec(300, -100), GREEN)
+    //c2.rot = Math.PI / 3
   }
 
   _createClass(Game, [{
@@ -2854,7 +2903,7 @@ var Laser = /*#__PURE__*/function (_body$CircularBody) {
 
       if (this.lifetime > dt) {
         this.universe.get_nearby_bodies(this).forEach(function (body) {
-          if (typeof body.hp !== 'undefined' && body.get_aabb_rect().collide_point(_this2.pos) && body != _this2.parent) {
+          if (typeof body.hp !== 'undefined' && body.get_aabb_rect().collide_point(_this2.pos) && !_this2.parent.contains(body)) {
             if (body.radius_collision(_this2.pos)) {
               _this2.exploding = true;
               _this2.exploding_start = t;
@@ -3130,7 +3179,7 @@ var Fighter = /*#__PURE__*/function (_body$PolygonalBody) {
     _this = _super.call(this, universe, pos, points, faction);
     _this.faction = faction;
     _this.equipment = equipment;
-    _this.mass = 1; // attributes to be changed when ship is equiped
+    _this.type = "fighter"; // attributes to be changed when ship is equiped
 
     _this.rot_speed = 0;
     _this.fly_speed = 0;
@@ -3179,6 +3228,11 @@ var Fighter = /*#__PURE__*/function (_body$PolygonalBody) {
       }
 
       return false; // is alive
+    }
+  }, {
+    key: "contains",
+    value: function contains(body) {
+      return body == this;
     }
   }]);
 
@@ -3394,16 +3448,12 @@ var Corvette = /*#__PURE__*/function (_CapitalShip) {
   var _super5 = _createSuper(Corvette);
 
   function Corvette(universe, pos, faction) {
-    var _this6;
-
     _classCallCheck(this, Corvette);
 
     var points = [(0, _vector["default"])(0, -75), (0, _vector["default"])(-15, -45), (0, _vector["default"])(-15, 45), (0, _vector["default"])(15, 45), (0, _vector["default"])(15, -45)];
     var engine_points = [(0, _vector["default"])(60, -15), (0, _vector["default"])(60, 15)];
     var armaments = [[(0, _vector["default"])(-15, 0), DualLaser.prototype.constructor], [(0, _vector["default"])(15, 0), DualLaser.prototype.constructor], [(0, _vector["default"])(-15, 30), DualLaser.prototype.constructor], [(0, _vector["default"])(15, 30), DualLaser.prototype.constructor], [(0, _vector["default"])(-15, -30), DualLaser.prototype.constructor], [(0, _vector["default"])(15, -30), DualLaser.prototype.constructor]];
-    _this6 = _super5.call(this, universe, pos, points, engine_points, armaments, faction);
-    _this6.mass = 30;
-    return _this6;
+    return _super5.call(this, universe, pos, points, engine_points, armaments, faction);
   }
 
   return Corvette;
