@@ -55,7 +55,7 @@ class Fighter extends body.PolygonalBody {
     fire_laser(t) {
         if (t - this.last_laser_shot > this.shot_delay) {
             this.last_laser_shot = t
-            let l = new Laser(this.universe, this, this.get_global_points()[0], this.laser_color, 3)
+            let l = new Laser(this.universe, this, this.get_global_points()[0], this.laser_color, 2)
             l.vel = vec(0, this.vel.length() + 500).invert().rotate(this.rot) // TODO: add spread
         }
     }
@@ -152,9 +152,6 @@ class AIFighter extends Fighter {
         })
         this.target = closest
 
-        if (this.rot < 0) this.rot += 360
-        else if (this.rot > 360) this.rot %= 360
-
         let time = this.target.pos.distance(this.pos) / (this.vel.length() + 500)
         let projection = this.target.pos.clone().add(this.target.vel.scaled(time))
 
@@ -197,10 +194,12 @@ class CapitalShip extends body.PolygonalBody {
         this.engine_bind_points = engine_bind_points
         this.armaments = []
         for (let armament_data of armament_template) {
-            let arm = new armament_data[1](this.universe, this, armament_data[0], this.faction)
+            let arm = new armament_data[1](this.universe, this, armament_data[0], armament_data[2], this.faction)
             this.armaments.push(arm)
             console.log(typeof bind_pos)
         }
+
+        this.rot_speed = Math.PI * 0.5
     }
  
     equip() {
@@ -223,29 +222,50 @@ class CapitalShip extends body.PolygonalBody {
             this.vel.mix(vec(0, 0), this.dec * dt)
             return false // do not kill self
         }
+
+        //this.rot += dt * this.rot_speed
     }
 }
 
 class Corvette extends CapitalShip {
     constructor(universe, pos, faction) {
+        // let points = [
+        //     vec(0, -75),
+        //     vec(-15, -45),
+        //     vec(-15, 45),
+        //     vec(15, 45),
+        //     vec(15, -45)
+        // ]
         let points = [
-            vec(0, -75),
-            vec(-15, -45),
-            vec(-15, 45),
-            vec(15, 45),
-            vec(15, -45)
+            vec(0, -150),
+            vec(-30, -90),
+            vec(-30, 90),
+            vec(30, 90),
+            vec(30, -90)
         ]
+        // let engine_points = [
+        //     vec(60, -15),
+        //     vec(60, 15)
+        // ]
         let engine_points = [
-            vec(60, -15),
-            vec(60, 15)
+            vec(120, -30),
+            vec(120, 30)
         ]
+        // let armaments = [
+        //     [vec(-15, 0), DualLaser.prototype.constructor, -Math.PI * 0.5],
+        //     [vec(15, 0), DualLaser.prototype.constructor, Math.PI * 0.5],
+        //     [vec(-15, 30), DualLaser.prototype.constructor, -Math.PI * 0.5],
+        //     [vec(15, 30), DualLaser.prototype.constructor, Math.PI * 0.5],
+        //     [vec(-15, -30), DualLaser.prototype.constructor, -Math.PI * 0.5],
+        //     [vec(15, -30), DualLaser.prototype.constructor, Math.PI * 0.5]
+        // ]
         let armaments = [
-            [vec(-15, 0), DualLaser.prototype.constructor],
-            [vec(15, 0), DualLaser.prototype.constructor],
-            [vec(-15, 30), DualLaser.prototype.constructor],
-            [vec(15, 30), DualLaser.prototype.constructor],
-            [vec(-15, -30), DualLaser.prototype.constructor],
-            [vec(15, -30), DualLaser.prototype.constructor]
+            [vec(-30, 0), DualLaser.prototype.constructor, -Math.PI * 0.5],
+            [vec(30, 0), DualLaser.prototype.constructor, Math.PI * 0.5],
+            [vec(-30, 60), DualLaser.prototype.constructor, -Math.PI * 0.5],
+            [vec(30, 60), DualLaser.prototype.constructor, Math.PI * 0.5],
+            [vec(-30, -60), DualLaser.prototype.constructor, -Math.PI * 0.5],
+            [vec(30, -60), DualLaser.prototype.constructor, Math.PI * 0.5]
         ]
         
         super(universe, pos, points, engine_points, armaments, faction)

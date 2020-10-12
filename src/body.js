@@ -52,7 +52,7 @@ class CircularBody extends Body {
     }
 
     get_aabb_rect() {
-        let d = this.radius / 2
+        let d = this.radius * 2
         let rect = new Rect(0, 0, d, d)
         rect.set_center(this.pos.x, this.pos.y)
         return rect
@@ -60,7 +60,7 @@ class CircularBody extends Body {
 
     radius_collision(point) {
         let distance = this.pos.distance(point)
-        return distance <= this.approx_radius
+        return distance <= this.radius
     }
 
     draw(context) {

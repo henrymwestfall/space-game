@@ -36,19 +36,19 @@ class Game {
             "shields": 0
         }
 
-        let p = new PlayerFighter(this.universe, this.controller, vec(100, 0), e, GREEN)
+        let p = new PlayerFighter(this.universe, this.controller, vec(100, 0), e, WHITE)
         this.universe.focus = p
 
-        new AIFighter(this.universe, vec(-500, 500 * 5), e, RED)
-        new AIFighter(this.universe, vec(-1000, 500 * 5), e, RED)
-        new AIFighter(this.universe, vec(-1500, 500 * 5), e, RED)
-        new AIFighter(this.universe, vec(-5000, 500 * 5), e, RED)
-        new AIFighter(this.universe, vec(-10000, 500 * 5), e, RED)
-        new AIFighter(this.universe, vec(-15000, 500 * 5), e, RED)
+        // new AIFighter(this.universe, vec(-500, 500 * 5), e, RED)
+        // new AIFighter(this.universe, vec(-1000, 500 * 5), e, RED)
+        // new AIFighter(this.universe, vec(-1500, 500 * 5), e, RED)
+        // new AIFighter(this.universe, vec(-5000, 500 * 5), e, RED)
+        // new AIFighter(this.universe, vec(-10000, 500 * 5), e, RED)
+        // new AIFighter(this.universe, vec(-15000, 500 * 5), e, RED)
 
         new Corvette(this.universe, vec(100, -300), GREEN)
-        //let c2 = new Corvette(this.universe, vec(300, -100), GREEN)
-        //c2.rot = Math.PI / 3
+        let c2 = new Corvette(this.universe, vec(300, -100), RED)
+        c2.rot = Math.PI / 3
     }
 
     runNextFrame() {

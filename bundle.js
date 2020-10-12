@@ -1909,21 +1909,23 @@ var Armament = /*#__PURE__*/function (_body$CircularBody) {
 
   var _super = _createSuper(Armament);
 
-  function Armament(universe, parent, bind_pos, faction) {
+  function Armament(universe, parent, bind_pos, bind_angle, faction) {
     var _this;
 
     _classCallCheck(this, Armament);
 
     var pos = parent.pos.clone();
     pos.add(bind_pos);
-    _this = _super.call(this, universe, pos, faction, 10);
+    _this = _super.call(this, universe, pos, faction, 20);
     _this.parent = parent;
     _this.bind_pos = bind_pos;
+    _this.bind_angle = bind_angle;
     _this.hp = 100;
-    _this.rot = 0; // changed by children
+    _this.rot = bind_angle - _this.parent.rot; // changed by children
 
     _this.rot_speed = 0;
     _this.target = null;
+    _this.type = "armament";
     return _this;
   }
 
@@ -1948,15 +1950,17 @@ var DualLaser = /*#__PURE__*/function (_Armament) {
 
   var _super2 = _createSuper(DualLaser);
 
-  function DualLaser(universe, parent, bind_pos, faction) {
+  function DualLaser(universe, parent, bind_pos, bind_angle, faction) {
     var _this2;
 
     _classCallCheck(this, DualLaser);
 
-    _this2 = _super2.call(this, universe, parent, bind_pos, faction);
-    _this2.color = "#20BB20"; // TODO: vary by faction
+    _this2 = _super2.call(this, universe, parent, bind_pos, bind_angle, faction); //this.color = "#20BB20" // TODO: vary by faction
 
-    _this2.rot_speed = Math.PI * 2;
+    _this2.rot_speed = Math.PI / 3;
+    _this2.rot_range = Math.PI * 0.5;
+    _this2.min_angle = _this2.bind_angle - _this2.rot_range / 2 - Math.PI * 0.5;
+    _this2.max_angle = _this2.bind_angle + _this2.rot_range / 2 - Math.PI * 0.5;
     _this2.shot_delay = 0.3;
     _this2.laser_color = CYAN;
     _this2.laser_speed_boost = 500;
@@ -1978,8 +1982,13 @@ var DualLaser = /*#__PURE__*/function (_Armament) {
       var p2 = this.pos.clone().subtract(v);
       var end1 = p1.clone().add((0, _vector["default"])(this.barrel_length, 0).rotate(this.rot - Math.PI * 0.5));
       var end2 = p2.clone().add((0, _vector["default"])(this.barrel_length, 0).rotate(this.rot - Math.PI * 0.5));
-      this.universe.draw_line(context, "#303030", p1, end1, 3);
-      this.universe.draw_line(context, "#303030", p2, end2, 3);
+      this.universe.draw_line(context, "#606060", p1, end1, 3);
+      this.universe.draw_line(context, "#606060", p2, end2, 3); // let proj1 = vec(50, 0).rotate(this.parent.rot + this.min_angle).add(this.pos)
+      // let proj2 = vec(50, 0).rotate(this.parent.rot + this.max_angle).add(this.pos)
+      // let proj3 = vec(30, 0).rotate(this.rot - Math.PI * 0.5).add(this.pos)
+      // this.universe.draw_line(context, "#FF0000", this.pos, proj1, 2)
+      // this.universe.draw_line(context, "#0000FF", this.pos, proj2, 2)
+      // this.universe.draw_line(context, "#00FFFF", this.pos, proj3, 2)
     }
   }, {
     key: "process",
@@ -1987,6 +1996,13 @@ var DualLaser = /*#__PURE__*/function (_Armament) {
       var _this3 = this;
 
       _get(_getPrototypeOf(DualLaser.prototype), "process", this).call(this, dt, t);
+
+      if (this.hp <= 0) {
+        this.hp = 0;
+        this.color = "#FFa500";
+        this.vel.mix((0, _vector["default"])(0, 0), this.dec * dt);
+        return false; // do not kill self
+      }
 
       var closest = null;
       var closest_distance = 10000000;
@@ -2008,30 +2024,55 @@ var DualLaser = /*#__PURE__*/function (_Armament) {
         }
       });
       this.target = closest;
-      if (this.rot < 0) this.rot += 360;else if (this.rot > 360) this.rot %= 360;
       var time = this.target.pos.distance(this.pos) / (this.parent.vel.length() + 500);
       var projection = this.target.pos.clone().add(this.target.vel.scaled(time));
       var desired_angle = (0, _vector["default"])(0, 1).angle() + projection.subtract(this.pos).angle();
-      var desired_rotation = desired_angle - this.rot;
-      if (desired_rotation < 0) desired_rotation += 2 * Math.PI;else if (desired_rotation > 2 * Math.PI) desired_rotation -= 2 * Math.PI; // rotate as much as possible (TODO: fix this)
+      desired_angle %= Math.PI * 2;
+      var desired_rotation = desired_angle - this.rot; // rotate as much as possible (TODO: fix this)
 
       var max_rotation_amount = this.rot_speed * dt;
 
-      if (max_rotation_amount > desired_rotation) {
+      if (max_rotation_amount >= Math.abs(desired_rotation)) {
         this.rot += desired_rotation;
       } else {
-        this.rot += max_rotation_amount;
+        this.rot += max_rotation_amount * Math.sign(desired_rotation);
       }
 
-      this.fire_laser(t);
+      this.rot %= Math.PI * 2;
+      var min = this.min_angle + this.parent.rot + Math.PI * 0.5;
+      var max = this.max_angle + this.parent.rot + Math.PI * 0.5;
+
+      if (this.rot > max) {
+        this.rot = max;
+      } else if (this.rot < min) {
+        this.rot = min;
+      } // let shifted = this.rot % (Math.PI * 2)
+      // if (shifted < min) {
+      //     this.rot = min
+      // }
+      // else if (shifted > max) {
+      //     console.log(shifted, max)
+      //     this.rot = max
+      // }
+
+
+      if (desired_rotation < this.rot_range / 2 && this.target.hp > 0) {
+        this.fire_laser(t);
+      }
     }
   }, {
     key: "fire_laser",
     value: function fire_laser(t) {
       if (t - this.last_laser_shot > this.shot_delay) {
+        var v = (0, _vector["default"])(this.radius * 0.25, 0).rotate(this.rot + Math.PI);
+        var p1 = this.pos.clone().add(v);
+        var p2 = this.pos.clone().subtract(v);
         this.last_laser_shot = t;
-        var l = new Laser(this.universe, this, this.pos, this.laser_color, 3);
+        var l = new Laser(this.universe, this, p1, this.laser_color, 2);
         l.vel = (0, _vector["default"])(0, this.parent.vel.length() + 500).invert().rotate(this.rot); // TODO: add spread
+
+        var l2 = new Laser(this.universe, this, p2, this.laser_color, 2);
+        l2.vel = (0, _vector["default"])(0, this.parent.vel.length() + 500).invert().rotate(this.rot); // TODO: add spread
       }
     }
   }]);
@@ -2150,7 +2191,7 @@ var CircularBody = /*#__PURE__*/function (_Body) {
   _createClass(CircularBody, [{
     key: "get_aabb_rect",
     value: function get_aabb_rect() {
-      var d = this.radius / 2;
+      var d = this.radius * 2;
       var rect = new _rectangle["default"](0, 0, d, d);
       rect.set_center(this.pos.x, this.pos.y);
       return rect;
@@ -2159,7 +2200,7 @@ var CircularBody = /*#__PURE__*/function (_Body) {
     key: "radius_collision",
     value: function radius_collision(point) {
       var distance = this.pos.distance(point);
-      return distance <= this.approx_radius;
+      return distance <= this.radius;
     }
   }, {
     key: "draw",
@@ -2763,16 +2804,17 @@ var Game = /*#__PURE__*/function () {
       "shot spread": 2,
       "shields": 0
     };
-    var p = new PlayerFighter(this.universe, this.controller, (0, _vector["default"])(100, 0), e, GREEN);
-    this.universe.focus = p;
-    new AIFighter(this.universe, (0, _vector["default"])(-500, 500 * 5), e, RED);
-    new AIFighter(this.universe, (0, _vector["default"])(-1000, 500 * 5), e, RED);
-    new AIFighter(this.universe, (0, _vector["default"])(-1500, 500 * 5), e, RED);
-    new AIFighter(this.universe, (0, _vector["default"])(-5000, 500 * 5), e, RED);
-    new AIFighter(this.universe, (0, _vector["default"])(-10000, 500 * 5), e, RED);
-    new AIFighter(this.universe, (0, _vector["default"])(-15000, 500 * 5), e, RED);
-    new Corvette(this.universe, (0, _vector["default"])(100, -300), GREEN); //let c2 = new Corvette(this.universe, vec(300, -100), GREEN)
-    //c2.rot = Math.PI / 3
+    var p = new PlayerFighter(this.universe, this.controller, (0, _vector["default"])(100, 0), e, WHITE);
+    this.universe.focus = p; // new AIFighter(this.universe, vec(-500, 500 * 5), e, RED)
+    // new AIFighter(this.universe, vec(-1000, 500 * 5), e, RED)
+    // new AIFighter(this.universe, vec(-1500, 500 * 5), e, RED)
+    // new AIFighter(this.universe, vec(-5000, 500 * 5), e, RED)
+    // new AIFighter(this.universe, vec(-10000, 500 * 5), e, RED)
+    // new AIFighter(this.universe, vec(-15000, 500 * 5), e, RED)
+
+    new Corvette(this.universe, (0, _vector["default"])(100, -300), GREEN);
+    var c2 = new Corvette(this.universe, (0, _vector["default"])(300, -100), RED);
+    c2.rot = Math.PI / 3;
   }
 
   _createClass(Game, [{
@@ -3214,7 +3256,7 @@ var Fighter = /*#__PURE__*/function (_body$PolygonalBody) {
     value: function fire_laser(t) {
       if (t - this.last_laser_shot > this.shot_delay) {
         this.last_laser_shot = t;
-        var l = new Laser(this.universe, this, this.get_global_points()[0], this.laser_color, 3);
+        var l = new Laser(this.universe, this, this.get_global_points()[0], this.laser_color, 2);
         l.vel = (0, _vector["default"])(0, this.vel.length() + 500).invert().rotate(this.rot); // TODO: add spread
       }
     }
@@ -3342,7 +3384,6 @@ var AIFighter = /*#__PURE__*/function (_Fighter2) {
         }
       });
       this.target = closest;
-      if (this.rot < 0) this.rot += 360;else if (this.rot > 360) this.rot %= 360;
       var time = this.target.pos.distance(this.pos) / (this.vel.length() + 500);
       var projection = this.target.pos.clone().add(this.target.vel.scaled(time));
       var desired_angle = (0, _vector["default"])(0, 1).angle() + projection.subtract(this.pos).angle();
@@ -3397,7 +3438,7 @@ var CapitalShip = /*#__PURE__*/function (_body$PolygonalBody2) {
     try {
       for (_iterator.s(); !(_step = _iterator.n()).done;) {
         var armament_data = _step.value;
-        var arm = new armament_data[1](_this5.universe, _assertThisInitialized(_this5), armament_data[0], _this5.faction);
+        var arm = new armament_data[1](_this5.universe, _assertThisInitialized(_this5), armament_data[0], armament_data[2], _this5.faction);
 
         _this5.armaments.push(arm);
 
@@ -3409,6 +3450,7 @@ var CapitalShip = /*#__PURE__*/function (_body$PolygonalBody2) {
       _iterator.f();
     }
 
+    _this5.rot_speed = Math.PI * 0.5;
     return _this5;
   }
 
@@ -3435,7 +3477,8 @@ var CapitalShip = /*#__PURE__*/function (_body$PolygonalBody2) {
         this.color = "#FFa500";
         this.vel.mix((0, _vector["default"])(0, 0), this.dec * dt);
         return false; // do not kill self
-      }
+      } //this.rot += dt * this.rot_speed
+
     }
   }]);
 
@@ -3450,9 +3493,28 @@ var Corvette = /*#__PURE__*/function (_CapitalShip) {
   function Corvette(universe, pos, faction) {
     _classCallCheck(this, Corvette);
 
-    var points = [(0, _vector["default"])(0, -75), (0, _vector["default"])(-15, -45), (0, _vector["default"])(-15, 45), (0, _vector["default"])(15, 45), (0, _vector["default"])(15, -45)];
-    var engine_points = [(0, _vector["default"])(60, -15), (0, _vector["default"])(60, 15)];
-    var armaments = [[(0, _vector["default"])(-15, 0), DualLaser.prototype.constructor], [(0, _vector["default"])(15, 0), DualLaser.prototype.constructor], [(0, _vector["default"])(-15, 30), DualLaser.prototype.constructor], [(0, _vector["default"])(15, 30), DualLaser.prototype.constructor], [(0, _vector["default"])(-15, -30), DualLaser.prototype.constructor], [(0, _vector["default"])(15, -30), DualLaser.prototype.constructor]];
+    // let points = [
+    //     vec(0, -75),
+    //     vec(-15, -45),
+    //     vec(-15, 45),
+    //     vec(15, 45),
+    //     vec(15, -45)
+    // ]
+    var points = [(0, _vector["default"])(0, -150), (0, _vector["default"])(-30, -90), (0, _vector["default"])(-30, 90), (0, _vector["default"])(30, 90), (0, _vector["default"])(30, -90)]; // let engine_points = [
+    //     vec(60, -15),
+    //     vec(60, 15)
+    // ]
+
+    var engine_points = [(0, _vector["default"])(120, -30), (0, _vector["default"])(120, 30)]; // let armaments = [
+    //     [vec(-15, 0), DualLaser.prototype.constructor, -Math.PI * 0.5],
+    //     [vec(15, 0), DualLaser.prototype.constructor, Math.PI * 0.5],
+    //     [vec(-15, 30), DualLaser.prototype.constructor, -Math.PI * 0.5],
+    //     [vec(15, 30), DualLaser.prototype.constructor, Math.PI * 0.5],
+    //     [vec(-15, -30), DualLaser.prototype.constructor, -Math.PI * 0.5],
+    //     [vec(15, -30), DualLaser.prototype.constructor, Math.PI * 0.5]
+    // ]
+
+    var armaments = [[(0, _vector["default"])(-30, 0), DualLaser.prototype.constructor, -Math.PI * 0.5], [(0, _vector["default"])(30, 0), DualLaser.prototype.constructor, Math.PI * 0.5], [(0, _vector["default"])(-30, 60), DualLaser.prototype.constructor, -Math.PI * 0.5], [(0, _vector["default"])(30, 60), DualLaser.prototype.constructor, Math.PI * 0.5], [(0, _vector["default"])(-30, -60), DualLaser.prototype.constructor, -Math.PI * 0.5], [(0, _vector["default"])(30, -60), DualLaser.prototype.constructor, Math.PI * 0.5]];
     return _super5.call(this, universe, pos, points, engine_points, armaments, faction);
   }
 

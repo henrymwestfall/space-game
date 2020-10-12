@@ -6,7 +6,7 @@ class Universe {
     constructor() {
         this.bodies = []
         this.particles = []
-        this.zoom = 1
+        this.zoom =1
         this.zoom_speed = 0.5
         this.camera = vec(0, 0)
         this.focus = null
